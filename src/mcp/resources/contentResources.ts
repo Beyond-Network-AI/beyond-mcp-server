@@ -1,0 +1,261 @@
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ProviderRegistry } from '../../providers/registry';
+import { SocialContent } from '../../providers/interfaces/provider';
+
+export function registerContentResources(server: McpServer, providerRegistry: ProviderRegistry) {
+  // Search resource
+  server.resource(
+    "social-search",
+    new ResourceTemplate("social://{platform}/{query}/search", { list: undefined }),
+    async (uri, params) => {
+      try {
+        const platform = params.platform as string;
+        const query = params.query as string;
+        
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+        
+        const results = await provider.searchContent(query, { limit: 10 });
+        
+        return {
+          contents: [{
+            uri: uri.href,
+            text: formatSearchResults(results, query, platform)
+          }]
+        };
+      } catch (error) {
+        console.error(`Error in social-search resource:`, error);
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `Error searching ${params.platform} for '${params.query}': ${error instanceof Error ? error.message : String(error)}`
+          }]
+        };
+      }
+    }
+  );
+  
+  // User profile resource
+  server.resource(
+    "user-profile",
+    new ResourceTemplate("social://{platform}/user/{userId}/profile", { list: undefined }),
+    async (uri, params) => {
+      try {
+        const platform = params.platform as string;
+        const userId = params.userId as string;
+        
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+        
+        const profile = await provider.getUserProfile(userId);
+        
+        return {
+          contents: [{
+            uri: uri.href,
+            text: formatUserProfile(profile)
+          }]
+        };
+      } catch (error) {
+        console.error(`Error in user-profile resource:`, error);
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `Error fetching ${params.platform} user profile for '${params.userId}': ${error instanceof Error ? error.message : String(error)}`
+          }]
+        };
+      }
+    }
+  );
+  
+  // User content resource
+  server.resource(
+    "user-content",
+    new ResourceTemplate("social://{platform}/user/{userId}/content", { list: undefined }),
+    async (uri, params) => {
+      try {
+        const platform = params.platform as string;
+        const userId = params.userId as string;
+        
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+        
+        const content = await provider.getUserContent(userId);
+        
+        return {
+          contents: [{
+            uri: uri.href,
+            text: formatUserContent(content, platform)
+          }]
+        };
+      } catch (error) {
+        console.error(`Error in user-content resource:`, error);
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `Error fetching ${params.platform} content for user '${params.userId}': ${error instanceof Error ? error.message : String(error)}`
+          }]
+        };
+      }
+    }
+  );
+  
+  // Thread resource
+  server.resource(
+    "thread",
+    new ResourceTemplate("social://{platform}/thread/{threadId}", { list: undefined }),
+    async (uri, params) => {
+      try {
+        const platform = params.platform as string;
+        const threadId = params.threadId as string;
+        
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+        
+        const thread = await provider.getThread(threadId);
+        
+        return {
+          contents: [{
+            uri: uri.href,
+            text: formatThread(thread)
+          }]
+        };
+      } catch (error) {
+        console.error(`Error in thread resource:`, error);
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `Error fetching ${params.platform} thread '${params.threadId}': ${error instanceof Error ? error.message : String(error)}`
+          }]
+        };
+      }
+    }
+  );
+  
+  // Trending topics resource
+  server.resource(
+    "trending",
+    new ResourceTemplate("social://{platform}/trending", { list: undefined }),
+    async (uri, params) => {
+      try {
+        const platform = params.platform as string;
+        
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+        
+        const topics = await provider.getTrendingTopics();
+        
+        return {
+          contents: [{
+            uri: uri.href,
+            text: formatTrendingTopics(topics, platform)
+          }]
+        };
+      } catch (error) {
+        console.error(`Error in trending resource:`, error);
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `Error fetching ${params.platform} trending topics: ${error instanceof Error ? error.message : String(error)}`
+          }]
+        };
+      }
+    }
+  );
+}
+
+// Helper functions to format content for better LLM consumption
+function formatSearchResults(results: SocialContent[], query: string, platform: string): string {
+  if (results.length === 0) {
+    return `No results found for query: "${query}" on ${platform}`;
+  }
+  
+  const formattedResults = results.map((result, index) => {
+    return `[${index + 1}] @${result.authorUsername} (${result.authorName}): ${result.text}
+    - Posted: ${new Date(result.createdAt).toLocaleString()}
+    - Engagement: ${result.likes || 0} likes, ${result.reposts || 0} reposts, ${result.replies || 0} replies
+    - ID: ${result.id}`;
+  }).join('\n\n');
+  
+  return `Search Results for "${query}" on ${platform}:\n\n${formattedResults}`;
+}
+
+function formatUserProfile(profile: any): string {
+  return `
+User Profile: @${profile.username} (${profile.displayName})
+Platform: ${profile.platform}
+Bio: ${profile.bio || 'No bio available'}
+Followers: ${profile.followerCount || 0}
+Following: ${profile.followingCount || 0}
+Verified: ${profile.verified ? 'Yes' : 'No'}
+User ID: ${profile.id}
+`;
+}
+
+function formatUserContent(content: SocialContent[], platform: string): string {
+  if (content.length === 0) {
+    return `No content available for this user on ${platform}.`;
+  }
+  
+  const formattedContent = content.map((item, index) => {
+    return `[${index + 1}] ${item.text}
+    - Posted: ${new Date(item.createdAt).toLocaleString()}
+    - Engagement: ${item.likes || 0} likes, ${item.reposts || 0} reposts, ${item.replies || 0} replies
+    - ID: ${item.id}`;
+  }).join('\n\n');
+  
+  return `Recent Content on ${platform}:\n\n${formattedContent}`;
+}
+
+function formatThread(thread: any): string {
+  const rootContent = thread.rootContent;
+  const replies = thread.replies;
+  
+  const root = `
+Original Post by @${rootContent.authorUsername} (${rootContent.authorName}):
+"${rootContent.text}"
+- Posted: ${new Date(rootContent.createdAt).toLocaleString()}
+- Engagement: ${rootContent.likes || 0} likes, ${rootContent.reposts || 0} reposts, ${rootContent.replies || 0} replies
+- ID: ${rootContent.id}
+`;
+  
+  let repliesText = '';
+  if (replies.length > 0) {
+    repliesText = '\nReplies:\n\n' + replies.map((reply: SocialContent, index: number) => {
+      return `[${index + 1}] @${reply.authorUsername} (${reply.authorName}): ${reply.text}
+      - Posted: ${new Date(reply.createdAt).toLocaleString()}
+      - Engagement: ${reply.likes || 0} likes, ${reply.reposts || 0} reposts, ${reply.replies || 0} replies
+      - ID: ${reply.id}`;
+    }).join('\n\n');
+  } else {
+    repliesText = '\nNo replies to this post.';
+  }
+  
+  return `Thread on ${thread.platform}:\n${root}${repliesText}`;
+}
+
+function formatTrendingTopics(topics: string[], platform: string): string {
+  if (topics.length === 0) {
+    return `No trending topics available for ${platform}.`;
+  }
+  
+  const formattedTopics = topics.map((topic, index) => {
+    return `${index + 1}. ${topic}`;
+  }).join('\n');
+  
+  return `Trending Topics on ${platform}:\n\n${formattedTopics}`;
+} 
