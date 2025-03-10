@@ -15,7 +15,6 @@ An extensible Model Context Protocol server that provides standardized access to
 
 - **Farcaster**: Full implementation via Neynar API
 - **Twitter**: Placeholder (not implemented)
-![Farcaster MCP Demo](https://github.com/user-attachments/assets/5689cdd2-1435-4f68-9144-d82b1ec4c4f3)
 
 ## Getting Started
 
@@ -88,7 +87,7 @@ npm run build
 }
 ```
 
-4. Alternatively, you can pass the API key and other environment variables directly in the Claude Desktop configuration (recommended):
+4. Alternatively, you can pass the API key and other environment variables directly in the Claude Desktop configuration (**recommended**):
 
 ```json
 {
