@@ -10,10 +10,12 @@ An extensible Model Context Protocol server that provides standardized access to
 - **Well-Formatted**: Optimized context formatting for LLM consumption
 - **Flexible Transport**: Supports both stdio and SSE/HTTP transports
 
+
 ## Supported Platforms
 
 - **Farcaster**: Full implementation via Neynar API
 - **Twitter**: Placeholder (not implemented)
+![Farcaster MCP Demo](https://github.com/user-attachments/assets/5689cdd2-1435-4f68-9144-d82b1ec4c4f3)
 
 ## Getting Started
 
