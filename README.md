@@ -1,4 +1,5 @@
 # Beyond MCP Server
+[![smithery badge](https://smithery.ai/badge/@Beyond-Network-AI/beyond-mcp-server)](https://smithery.ai/server/@Beyond-Network-AI/beyond-mcp-server)
 
 An extensible Model Context Protocol server that provides standardized access to social platform data and onchain data. Currently supports Farcaster (via Neynar API) with placeholder for Twitter integration. More platforms like Telegram including onchain data will be added soon.
 
@@ -25,6 +26,15 @@ An extensible Model Context Protocol server that provides standardized access to
 
 ### Installation
 
+#### Installing via Smithery
+
+To install Beyond MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@Beyond-Network-AI/beyond-mcp-server):
+
+```bash
+npx -y @smithery/cli install @Beyond-Network-AI/beyond-mcp-server --client claude
+```
+
+### Manual Installation
 1. Clone the repository
 ```bash
 git clone https://github.com/yourusername/beyond-mcp-server.git
@@ -199,3 +209,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
    - Support for both stdio and HTTP modes
 
    
+
+
