@@ -2,6 +2,10 @@
 
 An extensible Model Context Protocol server that provides standardized access to social platform data and onchain data. Currently supports Farcaster (via Neynar API) with placeholder for Twitter integration. More platforms like Telegram including onchain data will be added soon.
 
+<a href="https://glama.ai/mcp/servers/lxmmleqcl8">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/lxmmleqcl8/badge" alt="Beyond Server MCP server" />
+</a>
+
 ## Features
 
 - **MCP Compliant**: Fully implements the Model Context Protocol specification
@@ -9,7 +13,6 @@ An extensible Model Context Protocol server that provides standardized access to
 - **Extensible**: Easy to add new platform providers
 - **Well-Formatted**: Optimized context formatting for LLM consumption
 - **Flexible Transport**: Supports both stdio and SSE/HTTP transports
-
 
 ## Supported Platforms
 
@@ -197,5 +200,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
    - Farcaster integration via Neynar API
    - MCP compliant server implementation
    - Support for both stdio and HTTP modes
-
-   
