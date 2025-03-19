@@ -72,6 +72,7 @@ npm run build
 3. Add the server to your Claude Desktop configuration at:
 * macOS: ~/Library/Application Support/Claude/claude_desktop_config.json
 * Windows: %APPDATA%\Claude\claude_desktop_config.json
+  
 
 ```json
 {
@@ -116,6 +117,7 @@ npm run build
 
 * `social://{platform}/{query}/search` - Search content on a platform
 * `social://{platform}/user/{userId}/profile` - Get user profile
+* `social://{platform}/wallet/{walletAddress}/profile` - Get user profile by wallet address
 * `social://{platform}/user/{userId}/content` - Get user content
 * `social://{platform}/thread/{threadId}` - Get conversation thread
 * `social://{platform}/trending` - Get trending topics
@@ -127,6 +129,7 @@ npm run build
 * `get-user-content` - Get content from a specific user
 * `get-thread` - Get a conversation thread
 * `get-trending-topics` - Get current trending topics
+* `get-wallet-profile` - Get profile based on wallet address
 
 ### Prompts
 
@@ -197,5 +200,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
    - Farcaster integration via Neynar API
    - MCP compliant server implementation
    - Support for both stdio and HTTP modes
+
+   ### [1.0.1] - 2025-Mar-19
+   
+   #### Added
+   - Added new tools and resource to fetch user profile with wallet address
+   - Added new tests
+     
 
    
