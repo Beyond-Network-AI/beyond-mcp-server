@@ -97,6 +97,44 @@ export function registerContentTools(server: McpServer, providerRegistry: Provid
     }
   );
   
+  // Get wallet-based profile tool
+  server.tool(
+    "get-wallet-profile",
+    {
+      platform: z.string().describe("Social platform (farcaster, twitter, telegram)"),
+      walletAddress: z.string().describe("Ethereum wallet address (0x...)")
+    },
+    async ({ platform, walletAddress }) => {
+      try {
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          return {
+            content: [{ type: "text", text: `Provider for platform '${platform}' not found or not enabled` }],
+            isError: true
+          };
+        }
+        
+        const profile = await provider.getUserProfileByWalletAddress(walletAddress);
+        
+        return {
+          content: [{ 
+            type: "text", 
+            text: formatUserProfile(profile) 
+          }]
+        };
+      } catch (error) {
+        return {
+          content: [{ 
+            type: "text", 
+            text: `Error fetching ${platform} profile for wallet '${walletAddress}': ${error instanceof Error ? error.message : String(error)}` 
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+  
   // Get user content tool
   server.tool(
     "get-user-content",

@@ -50,4 +50,19 @@ export class TwitterProvider implements ContentProvider {
     console.error('Twitter getTrendingTopics not implemented yet');
     return [];
   }
+
+  async getUserProfileByWalletAddress(walletAddress: string): Promise<UserProfile> {
+    console.error('Twitter does not support wallet-based profile lookup');
+    return {
+      id: 'unsupported',
+      displayName: 'Unsupported',
+      username: 'unsupported',
+      bio: 'Twitter does not support wallet-based profile lookup',
+      platform: this.platform,
+      metadata: { 
+        error: 'unsupported_operation',
+        message: 'Twitter does not support wallet-based profile lookup'
+      }
+    };
+  }
 } 

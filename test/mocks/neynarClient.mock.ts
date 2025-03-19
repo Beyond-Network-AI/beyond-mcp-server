@@ -291,6 +291,34 @@ export const mockNeynarClient = {
     return { users: [] };
   }),
 
+  fetchBulkUsersByEthOrSolAddress: jest.fn().mockImplementation(({ addresses }) => {
+    const address = addresses[0].toLowerCase();
+    if (address === '0x29db3d715bffd0b50862de8635186c5ac02c0831') {
+      return {
+        '0x29db3d715bffd0b50862de8635186c5ac02c0831': [
+          {
+            fid: 194,
+            username: 'rish',
+            display_name: 'rish',
+            profile: {
+              bio: {
+                text: 'building farcaster infra @ /neynar 🪐 casting @ /rish'
+              }
+            },
+            follower_count: 264665,
+            following_count: 839,
+            verifications: ['0x5a927ac639636e534b678e81768ca19e2c6280b7'],
+            verified_addresses: {
+              eth_addresses: ['0x29db3d715bffd0b50862de8635186c5ac02c0831'],
+              sol_addresses: []
+            }
+          }
+        ]
+      };
+    }
+    return {};
+  }),
+
   // Feed methods
   fetchFeed: jest.fn().mockImplementation(({ feedType, filterType, limit }) => {
     return {

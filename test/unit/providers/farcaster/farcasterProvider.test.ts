@@ -245,6 +245,49 @@ describe('FarcasterProvider', () => {
     });
   });
 
+  describe('getUserProfileByWalletAddress', () => {
+    it('should return a user profile when the wallet address exists', async () => {
+      const walletAddress = '0x29db3d715bffd0b50862de8635186c5ac02c0831';
+      
+      const result = await provider.getUserProfileByWalletAddress(walletAddress);
+      
+      expect(result).toBeDefined();
+      expect(result.id).toBe('194');
+      expect(result.username).toBe('rish');
+      expect(result.displayName).toBe('rish');
+      expect(result.bio).toBe('building farcaster infra @ /neynar 🪐 casting @ /rish');
+      expect(result.followerCount).toBe(264665);
+      expect(result.followingCount).toBe(839);
+      expect(result.platform).toBe('farcaster');
+      expect((result.metadata as any).verifications).toContain('0x5a927ac639636e534b678e81768ca19e2c6280b7');
+      expect((result.metadata as any).verifiedEthAddresses).toContain(walletAddress);
+      expect(mockNeynarClient.fetchBulkUsersByEthOrSolAddress).toHaveBeenCalledWith({
+        addresses: [walletAddress]
+      });
+    });
+
+    it('should handle a wallet address that does not exist', async () => {
+      const walletAddress = '0x1234567890123456789012345678901234567890';
+      
+      await expect(provider.getUserProfileByWalletAddress(walletAddress))
+        .rejects.toThrow('User with wallet address 0x1234567890123456789012345678901234567890 not found');
+      
+      expect(mockNeynarClient.fetchBulkUsersByEthOrSolAddress).toHaveBeenCalledWith({
+        addresses: [walletAddress]
+      });
+    });
+
+    it('should handle an uninitialized client', async () => {
+      const provider = new FarcasterProvider();
+      provider['client'] = null;
+      
+      const walletAddress = '0x29db3d715bffd0b50862de8635186c5ac02c0831';
+      
+      await expect(provider.getUserProfileByWalletAddress(walletAddress))
+        .rejects.toThrow('Neynar client not initialized');
+    });
+  });
+
   describe('getUserContent', () => {
     it('should return user content when the user exists (by username)', async () => {
       const userId = 'rish';
