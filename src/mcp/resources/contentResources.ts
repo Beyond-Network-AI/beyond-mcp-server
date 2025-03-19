@@ -73,6 +73,40 @@ export function registerContentResources(server: McpServer, providerRegistry: Pr
     }
   );
   
+  server.resource(
+    "user-profile-by-wallet",
+    new ResourceTemplate("social://{platform}/wallet/{walletAddress}/profile", { list: undefined }),
+    async (uri, params) => {
+      try {
+        const platform = params.platform as string;
+        const walletAddress = params.walletAddress as string;
+        
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+        
+        const profile = await provider.getUserProfileByWalletAddress(walletAddress);
+        
+        return {
+          contents: [{
+            uri: uri.href,
+            text: formatUserProfile(profile)
+          }]
+        };
+      } catch (error) {
+        console.error(`Error in user-profile-by-wallet resource:`, error);
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `Error fetching ${params.platform} user profile for wallet '${params.walletAddress}': ${error instanceof Error ? error.message : String(error)}`
+          }]
+        };
+      }
+    }
+  );
+  
   // User content resource
   server.resource(
     "user-content",
@@ -197,13 +231,13 @@ function formatSearchResults(results: SocialContent[], query: string, platform: 
 function formatUserProfile(profile: any): string {
   return `
 User Profile: @${profile.username} (${profile.displayName})
-Platform: ${profile.platform}
-Bio: ${profile.bio || 'No bio available'}
-Followers: ${profile.followerCount || 0}
-Following: ${profile.followingCount || 0}
-Verified: ${profile.verified ? 'Yes' : 'No'}
-User ID: ${profile.id}
-`;
+- Platform: ${profile.platform}
+- Bio: ${profile.bio || 'No bio available'}
+- Followers: ${profile.followerCount || 0}
+- Following: ${profile.followingCount || 0}
+- Verified: ${profile.verified ? 'Yes' : 'No'}
+- User ID: ${profile.id}
+- `;
 }
 
 function formatUserContent(content: SocialContent[], platform: string): string {
@@ -258,4 +292,4 @@ function formatTrendingTopics(topics: string[], platform: string): string {
   }).join('\n');
   
   return `Trending Topics on ${platform}:\n\n${formattedTopics}`;
-} 
+}

@@ -318,6 +318,52 @@ export class FarcasterProvider implements ContentProvider {
       throw new Error(`Failed to fetch profile for user ${userId}`);
     }
   }
+
+  async getUserProfileByWalletAddress(walletAddress: string): Promise<UserProfile> {
+    if (!this.client) {
+      console.error('Neynar client not initialized');
+      throw new Error('Neynar client not initialized');
+    }
+
+    try {
+      console.log(`Fetching user profile for wallet address: ${walletAddress}`);
+      
+      // Use the correct endpoint to fetch users by ETH address
+      const response = await this.client.fetchBulkUsersByEthOrSolAddress({
+        addresses: [walletAddress]
+      });
+      
+      // The response contains a map of address to array of users
+      const users = response[walletAddress.toLowerCase()];
+      
+      if (!users || users.length === 0) {
+        console.log(`No user found for wallet address: ${walletAddress}`);
+        throw new Error(`User with wallet address ${walletAddress} not found`);
+      }
+
+      // Get the most complete profile (one with username and display name)
+      const user = users.find((u: { username: string }) => u.username && !u.username.startsWith('!')) || users[0];
+      
+      return {
+        id: user.fid.toString(),
+        displayName: user.display_name || '',
+        username: user.username || '',
+        bio: user.profile?.bio?.text || '',
+        profileImageUrl: user.pfp_url || '',
+        followerCount: user.follower_count || 0,
+        followingCount: user.following_count || 0,
+        platform: this.platform,
+        metadata: {
+          verifications: user.verifications || [],
+          verifiedEthAddresses: user.verified_addresses?.eth_addresses || [],
+          verifiedSolAddresses: user.verified_addresses?.sol_addresses || []
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching Farcaster user profile by wallet:', error);
+      throw new Error(`Failed to fetch profile for wallet address ${walletAddress}`);
+    }
+  }
   
   async getUserContent(userId: string, options: ContentOptions = {}): Promise<SocialContent[]> {
     // Check if API key is provided

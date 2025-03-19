@@ -49,6 +49,7 @@ export interface ContentProvider {
   
   // User data
   getUserProfile(userId: string): Promise<UserProfile>;
+  getUserProfileByWalletAddress(walletAddress: string): Promise<UserProfile>;
   getUserContent(userId: string, options?: ContentOptions): Promise<SocialContent[]>;
   
   // Thread/conversation data

@@ -50,4 +50,19 @@ export class TelegramProvider implements ContentProvider {
     console.error('Telegram getTrendingTopics not implemented yet');
     return [];
   }
+
+  async getUserProfileByWalletAddress(walletAddress: string): Promise<UserProfile> {
+    console.error('Telegram does not support wallet-based profile lookup');
+    return {
+      id: 'unsupported',
+      displayName: 'Unsupported',
+      username: 'unsupported',
+      bio: 'Telegram does not support wallet-based profile lookup',
+      platform: this.platform,
+      metadata: { 
+        error: 'unsupported_operation',
+        message: 'Telegram does not support wallet-based profile lookup'
+      }
+    };
+  }
 } 
