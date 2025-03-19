@@ -72,6 +72,7 @@ npm run build
 3. Add the server to your Claude Desktop configuration at:
 * macOS: ~/Library/Application Support/Claude/claude_desktop_config.json
 * Windows: %APPDATA%\Claude\claude_desktop_config.json
+  
 
 ```json
 {
@@ -214,5 +215,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
    - Farcaster integration via Neynar API
    - MCP compliant server implementation
    - Support for both stdio and HTTP modes
+
+   ### [1.0.1] - 2025-Mar-19
+   
+   #### Added
+   - Added new tools and resource to fetch user profile with wallet address
+   - Added new tests
+     
 
    
