@@ -121,6 +121,7 @@ npm run build
 * `social://{platform}/user/{userId}/balance` - Get user's wallet balance (Farcaster only)
   - Accepts either FID (numeric) or username
   - If username is provided, automatically converts to FID before fetching balance
+* `social://{platform}/wallet/{walletAddress}/profile` - Get user profile by wallet address
 * `social://{platform}/user/{userId}/content` - Get user content
 * `social://{platform}/thread/{threadId}` - Get conversation thread
 * `social://{platform}/trending` - Get trending topics
@@ -140,6 +141,8 @@ npm run build
 * `get-thread` - Get a conversation thread
 * `get-trending-topics` - Get current trending topics
 * `getTrendingFeed` - Get trending feed with multi-provider support (Farcaster only)
+* `get-wallet-profile` - Get profile based on wallet address
+
 
 ### Prompts
 
