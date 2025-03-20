@@ -249,6 +249,112 @@ export function registerContentTools(server: McpServer, providerRegistry: Provid
       }
     }
   );
+
+  // Get trending feed tool
+  server.tool(
+    "get-trending-feed",
+    {
+      platform: z.string().describe("Social platform (farcaster, twitter, telegram)"),
+      provider: z.enum(['neynar', 'openrank', 'mbd']).optional().describe("Provider to use for trending feed (default: neynar)"),
+      timeWindow: z.enum(['1h', '6h', '12h', '24h', '7d', '30d']).optional().describe("Time window for trending content (default: 24h)"),
+      limit: z.number().optional().describe("Maximum number of trending items to return (default: 20)")
+    },
+    async ({ platform, provider, timeWindow, limit = 20 }) => {
+      try {
+        // Check if platform supports trending feed
+        if (platform !== 'farcaster') {
+          return {
+            content: [{ 
+              type: "text", 
+              text: `Trending feed with multiple providers is currently only supported for Farcaster. For ${platform}, please use the get-trending-topics tool instead.` 
+            }],
+            isError: true
+          };
+        }
+
+        const providerInstance = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!providerInstance) {
+          return {
+            content: [{ type: "text", text: `Provider for platform '${platform}' not found or not enabled` }],
+            isError: true
+          };
+        }
+        
+        const feed = await providerInstance.getTrendingFeed({ provider, timeWindow, limit });
+        
+        return {
+          content: [{ 
+            type: "text", 
+            text: formatTrendingFeed(feed, platform) 
+          }]
+        };
+      } catch (error) {
+        return {
+          content: [{ 
+            type: "text", 
+            text: `Error fetching ${platform} trending feed: ${error instanceof Error ? error.message : String(error)}` 
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // Tool for getting user balance
+  server.tool(
+    "get-user-balance",
+    {
+      platform: z.string().describe("Social platform (farcaster, twitter, telegram)"),
+      userId: z.string().describe("Farcaster ID (FID) or username of the user")
+    },
+    async ({ platform, userId }) => {
+      // Check if platform is Farcaster
+      if (platform !== 'farcaster') {
+        return {
+          content: [{ 
+            type: "text", 
+            text: "User balance functionality is currently only supported for Farcaster." 
+          }],
+          isError: true
+        };
+      }
+
+      try {
+        // Get the provider for the platform
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        if (!provider) {
+          return {
+            content: [{ 
+              type: "text", 
+              text: `Provider not found for platform: ${platform}` 
+            }],
+            isError: true
+          };
+        }
+
+        // Get user balance (now accepts either FID or username)
+        const balance = await provider.getUserBalance?.(userId);
+        
+        // Format the balance information
+        return {
+          content: [{ 
+            type: "text", 
+            text: formatUserBalance(balance) 
+          }]
+        };
+      } catch (error) {
+        console.error('Error fetching user balance:', error);
+        return {
+          content: [{ 
+            type: "text", 
+            text: `Failed to fetch user balance: ${error instanceof Error ? error.message : String(error)}` 
+          }],
+          isError: true
+        };
+      }
+    }
+  );
 }
 
 // Helper functions to format content for better LLM consumption
@@ -268,6 +374,44 @@ function formatSearchResults(results: SocialContent[], query: string, platform: 
 }
 
 function formatUserProfile(profile: any): string {
+  const metadata = profile.metadata || {};
+  const verifiedEthAddresses = metadata.verifiedEthAddresses || [];
+  const verifiedSolAddresses = metadata.verifiedSolAddresses || [];
+  
+  let walletInfo = '';
+  if (verifiedEthAddresses.length > 0 || verifiedSolAddresses.length > 0) {
+    walletInfo = '\nWallet Information:';
+    if (verifiedEthAddresses.length > 0) {
+      walletInfo += `\n- Verified ETH Addresses: ${verifiedEthAddresses.join(', ')}`;
+    }
+    if (verifiedSolAddresses.length > 0) {
+      walletInfo += `\n- Verified SOL Addresses: ${verifiedSolAddresses.join(', ')}`;
+    }
+    if (metadata.primaryEthAddress) {
+      walletInfo += `\n- Primary ETH Address: ${metadata.primaryEthAddress}`;
+    }
+    if (metadata.primarySolAddress) {
+      walletInfo += `\n- Primary SOL Address: ${metadata.primarySolAddress}`;
+    }
+  }
+
+  let additionalInfo = '';
+  if (metadata.custodyAddress) {
+    additionalInfo += `\n- Custody Address: ${metadata.custodyAddress}`;
+  }
+  if (metadata.recoveryAddress) {
+    additionalInfo += `\n- Recovery Address: ${metadata.recoveryAddress}`;
+  }
+  if (metadata.hasEmail) {
+    additionalInfo += '\n- Has Email: Yes';
+  }
+  if (metadata.activeStatus) {
+    additionalInfo += `\n- Active Status: ${metadata.activeStatus}`;
+  }
+  if (metadata.powerBadge) {
+    additionalInfo += `\n- Power Badge: ${metadata.powerBadge}`;
+  }
+
   return `
 User Profile: @${profile.username} (${profile.displayName})
 Platform: ${profile.platform}
@@ -275,7 +419,7 @@ Bio: ${profile.bio || 'No bio available'}
 Followers: ${profile.followerCount || 0}
 Following: ${profile.followingCount || 0}
 Verified: ${profile.verified ? 'Yes' : 'No'}
-User ID: ${profile.id}
+User ID: ${profile.id}${walletInfo}${additionalInfo}
 `;
 }
 
@@ -331,4 +475,55 @@ function formatTrendingTopics(topics: string[], platform: string): string {
   }).join('\n');
   
   return `Trending Topics on ${platform}:\n\n${formattedTopics}`;
+}
+
+function formatTrendingFeed(feed: SocialContent[], platform: string): string {
+  if (feed.length === 0) {
+    return `No trending content available for ${platform}.`;
+  }
+  
+  const formattedFeed = feed.map((item, index) => {
+    return `[${index + 1}] @${item.authorUsername} (${item.authorName}): "${item.text}"
+    - Posted: ${new Date(item.createdAt).toLocaleString()}
+    - Engagement: ${item.likes || 0} likes, ${item.reposts || 0} reposts, ${item.replies || 0} replies
+    - ID: ${item.id}`;
+  }).join('\n\n');
+  
+  return `Trending Feed on ${platform}:\n\n${formattedFeed}`;
+}
+
+function formatUserBalance(balance: any): string {
+  if (!balance) {
+    return "No balance information available.";
+  }
+
+  const addressBalances = balance.address_balances || [];
+  if (addressBalances.length === 0) {
+    return "No verified addresses found for this user.";
+  }
+
+  let formattedText = "User Balance Information:\n";
+  
+  addressBalances.forEach((addrBalance: any) => {
+    const verifiedAddress = addrBalance.verified_address;
+    const tokenBalances = addrBalance.token_balances || [];
+    
+    formattedText += `\nBase Network Address: ${verifiedAddress.address}\n`;
+    formattedText += "Token Balances:\n";
+    
+    if (tokenBalances.length === 0) {
+      formattedText += "- No token balances found\n";
+    } else {
+      tokenBalances.forEach((tokenBalance: any) => {
+        const token = tokenBalance.token;
+        const balance = tokenBalance.balance;
+        
+        formattedText += `- ${token.symbol}: ${balance.in_token.toFixed(4)} (≈ $${balance.in_usdc.toFixed(2)} USDC)\n`;
+      });
+    }
+  });
+  
+  formattedText += `\nLast Updated: ${new Date().toLocaleString()}`;
+  
+  return formattedText;
 } 
