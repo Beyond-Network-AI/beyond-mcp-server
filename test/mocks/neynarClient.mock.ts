@@ -402,6 +402,51 @@ export const mockNeynarClient = {
       ];
     }
     return [];
+  }),
+
+  searchChannels: jest.fn().mockImplementation(({ q, limit, cursor }) => {
+    if (q === 'beyond-ai') {
+      return {
+        channels: [
+          {
+            id: 'beyond-ai',
+            name: 'Beyond AI',
+            description: 'AI Inference Network for Onchain Agents and Gaming',
+            follower_count: 11,
+            parent_url: 'https://warpcast.com/~/channel/beyond-ai',
+            image_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/6bff7396-073f-48e9-2bc9-07573ea27000/original',
+            created_at: 1741783577,
+            updated_at: '2025-03-21T17:05:23.018Z'
+          }
+        ],
+        next: { cursor: null }
+      };
+    } else if (q === 'test') {
+      return {
+        channels: [
+          {
+            id: '1',
+            name: 'Test Channel',
+            description: 'Test channel description',
+            follower_count: 100,
+            parent_url: 'https://warpcast.com/~/channel/test',
+            image_url: 'https://example.com/image.jpg',
+            created_at: 1741783577,
+            updated_at: '2024-03-21T00:00:00Z'
+          }
+        ],
+        next: { cursor: cursor || null }
+      };
+    } else if (q === 'nonexistent') {
+      return {
+        channels: [],
+        next: { cursor: null }
+      };
+    }
+    return {
+      channels: [],
+      next: { cursor: null }
+    };
   })
 };
 

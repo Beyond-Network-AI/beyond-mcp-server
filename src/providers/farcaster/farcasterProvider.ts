@@ -949,4 +949,86 @@ export class FarcasterProvider implements ContentProvider {
       throw error;
     }
   }
+
+  async searchChannels(query: string, options: { 
+    limit?: number;
+    cursor?: string;
+    includeChannels?: boolean;
+  } = {}): Promise<{
+    channels: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      followerCount: number;
+      parentUrl?: string;
+      imageUrl?: string;
+      leadFid?: number;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    nextCursor?: string;
+  }> {
+    // Check if API key is provided
+    if (!config.providers.farcaster.neynarApiKey) {
+      console.error('Cannot search Farcaster channels: No API key provided');
+      throw new Error('Cannot search Farcaster channels: No API key provided. Please set NEYNAR_API_KEY in your .env file.');
+    }
+
+    try {
+      console.error(`Searching Farcaster channels for: "${query}"`);
+      
+      // Prepare the request parameters
+      const params: any = {
+        q: query,
+        limit: options.limit || 20
+      };
+
+      // Add cursor if provided
+      if (options.cursor) {
+        params.cursor = options.cursor;
+      }
+
+      // Add include_channels parameter if specified
+      if (options.includeChannels !== undefined) {
+        params.include_channels = options.includeChannels;
+      }
+
+      // Make the API call to search channels
+      const response = await this.client.searchChannels(params);
+
+      console.error(`Response received: ${response ? 'Yes' : 'No'}`);
+      
+      if (!response || !response.channels || !Array.isArray(response.channels)) {
+        console.error('No channels found in response');
+        return {
+          channels: [],
+          nextCursor: undefined
+        };
+      }
+
+      console.error(`Found ${response.channels.length} channels`);
+
+      // Map the response to our standardized format
+      const channels = response.channels.map((channel: any) => ({
+        id: channel.id || '',
+        name: channel.name || '',
+        description: channel.description,
+        followerCount: channel.follower_count || 0,
+        parentUrl: channel.parent_url,
+        imageUrl: channel.image_url,
+        leadFid: channel.lead_fid,
+        createdAt: channel.created_at || new Date().toISOString(),
+        updatedAt: channel.updated_at || new Date().toISOString()
+      }));
+
+      return {
+        channels,
+        nextCursor: response.next?.cursor
+      };
+
+    } catch (error) {
+      console.error('Error searching channels:', error);
+      throw error;
+    }
+  }
 } 

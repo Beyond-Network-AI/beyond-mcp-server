@@ -6,7 +6,9 @@ import {
   SearchOptions,
   ContentOptions,
   ThreadOptions,
-  TrendingOptions
+  TrendingOptions,
+  ChannelSearchOptions,
+  ChannelSearchResult
 } from '../interfaces/provider';
 import config from '../../config';
 
@@ -70,5 +72,11 @@ export class TwitterProvider implements ContentProvider {
         message: 'Twitter does not support wallet-based profile lookup'
       }
     };
+  }
+
+  async searchChannels(query: string, options: ChannelSearchOptions = {}): Promise<ChannelSearchResult> {
+    // Twitter channels are not supported
+    console.error('Twitter channels are not supported');
+    throw new Error('Channel search is not supported for Twitter platform');
   }
 } 

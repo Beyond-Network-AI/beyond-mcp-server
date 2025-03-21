@@ -61,6 +61,7 @@ export interface ContentProvider {
 
   // Optional methods for specific platforms
   getUserBalance?(userId: string | number): Promise<any>;
+  searchChannels?(query: string, options?: ChannelSearchOptions): Promise<ChannelSearchResult>;
 }
 
 export interface SearchOptions {
@@ -94,4 +95,25 @@ export interface TrendingOptions {
     endTimestamp?: number;
     [key: string]: any;
   };
+}
+
+export interface ChannelSearchOptions {
+  limit?: number;
+  cursor?: string;
+  includeChannels?: boolean;
+}
+
+export interface ChannelSearchResult {
+  channels: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    followerCount: number;
+    parentUrl?: string;
+    imageUrl?: string;
+    leadFid?: number;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  nextCursor?: string;
 } 

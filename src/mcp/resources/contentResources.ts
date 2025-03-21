@@ -268,6 +268,60 @@ export function registerContentResources(server: McpServer, providerRegistry: Pr
       }
     }
   );
+
+  // Channel search resource
+  server.resource(
+    "channel-search",
+    new ResourceTemplate("social://{platform}/{query}/channels", { list: undefined }),
+    async (uri, params) => {
+      try {
+        const platform = params.platform as string;
+        const query = params.query as string;
+        
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+
+        // Check if the provider supports channel search
+        if (!provider.searchChannels) {
+          throw new Error(`Channel search is not supported for platform '${platform}'`);
+        }
+        
+        const results = await provider.searchChannels(query, { limit: 10 });
+        
+        // Format the results
+        const formattedResults = results.channels.map(channel => 
+          `Channel: ${channel.name}\n` +
+          `Description: ${channel.description || 'No description'}\n` +
+          `Followers: ${channel.followerCount}\n` +
+          `Created: ${channel.createdAt}\n` +
+          `URL: ${channel.parentUrl || 'N/A'}\n`
+        ).join('\n');
+
+        let response = `Found ${results.channels.length} channels:\n\n${formattedResults}`;
+        if (results.nextCursor) {
+          response += `\n\nUse the cursor "${results.nextCursor}" to fetch more results.`;
+        }
+        
+        return {
+          contents: [{
+            uri: uri.href,
+            text: response
+          }]
+        };
+      } catch (error) {
+        console.error(`Error in channel-search resource:`, error);
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `Error searching channels on ${params.platform} for '${params.query}': ${error instanceof Error ? error.message : String(error)}`
+          }]
+        };
+      }
+    }
+  );
 }
 
 // Helper functions to format content for better LLM consumption

@@ -59,6 +59,83 @@ export function registerContentTools(server: McpServer, providerRegistry: Provid
     }
   );
   
+  // Search channels tool
+  server.tool(
+    "search-channels",
+    {
+      platform: z.string().describe("Social platform (farcaster, twitter, telegram)"),
+      query: z.string().describe("Search query"),
+      limit: z.number().optional().describe("Maximum number of results to return"),
+      cursor: z.string().optional().describe("Pagination cursor for fetching more results"),
+      includeChannels: z.boolean().optional().describe("Whether to include channel information")
+    },
+    async ({ platform, query, limit = 10, cursor, includeChannels }) => {
+      try {
+        console.error(`search-channels tool called for platform: ${platform}, query: ${query}`);
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          console.error(`Provider for platform '${platform}' not found or not enabled`);
+          return {
+            content: [{ type: "text", text: `Provider for platform '${platform}' not found or not enabled` }],
+            isError: true
+          };
+        }
+        
+        // Check if the provider is available
+        console.error(`Checking if provider ${provider.name} is available`);
+        const isAvailable = await provider.isAvailable();
+        if (!isAvailable) {
+          console.error(`Provider ${provider.name} is not available`);
+          return {
+            content: [{ type: "text", text: `Provider for platform '${platform}' is not available` }],
+            isError: true
+          };
+        }
+
+        // Check if the provider supports channel search
+        if (!provider.searchChannels) {
+          console.error(`Provider ${provider.name} does not support channel search`);
+          return {
+            content: [{ type: "text", text: `Channel search is not supported for platform '${platform}'` }],
+            isError: true
+          };
+        }
+        
+        console.error(`Using provider: ${provider.name} for channel search`);
+        const results = await provider.searchChannels(query, { limit, cursor, includeChannels });
+        
+        // Format the results
+        const formattedResults = results.channels.map(channel => 
+          `Channel: ${channel.name}\n` +
+          `Description: ${channel.description || 'No description'}\n` +
+          `Followers: ${channel.followerCount}\n` +
+          `Created: ${channel.createdAt}\n` +
+          `URL: ${channel.parentUrl || 'N/A'}\n`
+        ).join('\n');
+
+        let response = `Found ${results.channels.length} channels:\n\n${formattedResults}`;
+        if (results.nextCursor) {
+          response += `\n\nUse the cursor "${results.nextCursor}" to fetch more results.`;
+        }
+
+        return {
+          content: [{ type: "text", text: response }],
+          isError: false
+        };
+      } catch (error) {
+        console.error(`Error in search-channels tool:`, error);
+        return {
+          content: [{ 
+            type: "text", 
+            text: `Error searching channels on ${platform}: ${error instanceof Error ? error.message : String(error)}` 
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+  
   // Get user profile tool
   server.tool(
     "get-user-profile",

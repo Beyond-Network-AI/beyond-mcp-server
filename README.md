@@ -128,6 +128,9 @@ npm run build
 * `social://{platform}/trending-feed` - Get trending feed content with multi-provider support (Farcaster only)
   - Supports providers: neynar (default), openrank, mbd
   - Parameters: timeWindow (1h, 6h, 12h, 24h, 7d, 30d), limit
+* `social://{platform}/channels/search` - Search for channels on a platform (Farcaster only)
+  - Parameters: query, limit, cursor
+  - Returns channel details including name, description, follower count, and metadata
 
 ### Tools
 
@@ -142,6 +145,7 @@ npm run build
 * `get-trending-topics` - Get current trending topics
 * `getTrendingFeed` - Get trending feed with multi-provider support (Farcaster only)
 * `get-wallet-profile` - Get profile based on wallet address
+* `search-channels` - Search for channels on a platform (Farcaster only)
 
 
 ### Prompts
@@ -155,6 +159,7 @@ npm run build
 * `check-user-balance` - Analyze user's wallet balance and holdings
   - Works with both FID and username inputs
   - Handles automatic FID resolution for usernames
+* `explore-channels` - Analyze and explore channels on a platform
 
 ## Extending with New Providers
 
