@@ -1,0 +1,24 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - neynarApiKey
+    properties:
+      neynarApiKey:
+        type: string
+        description: Neynar API key for Farcaster integration
+      mode:
+        type: string
+        default: stdio
+        description: "Start mode: 'stdio' for stdio mode, 'http' for HTTP/SSE mode"
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => { const mode = config.mode || 'stdio'; const args = [`dist/index.js`, mode === 'http' ? '--http' : '--stdio']; return { command: 'node', args, env: { NEYNAR_API_KEY: config.neynarApiKey, ENABLE_FARCASTER: 'true', ENABLE_TWITTER: 'false' } }; }
+  exampleConfig:
+    neynarApiKey: 1234567890abcdef
+    mode: stdio
