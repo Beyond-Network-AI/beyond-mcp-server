@@ -225,5 +225,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
    - Added new tools and resource to fetch user profile with wallet address
    - Added new tests
      
-
+   ### [1.0.2] - 2025-Mar-21
+   
+   #### Added
+   - Added functionality to retrieve wallet balances of Farcaster users via ID or username
+   - Implemented multi-provider support for trending feed content
+   - Enhanced updateUserProfile with additional user details
+   - Added comprehensive tests to ensure reliability and performance
+     
    
