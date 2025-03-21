@@ -1,5 +1,6 @@
 import { FarcasterProvider } from '../../../../src/providers/farcaster/farcasterProvider';
 import { mockNeynarClient } from '../../../mocks/neynarClient.mock';
+import config from '../../../../src/config';
 
 // Mock the Neynar client
 jest.mock('@neynar/nodejs-sdk', () => {
@@ -270,7 +271,7 @@ describe('FarcasterProvider', () => {
       const walletAddress = '0x1234567890123456789012345678901234567890';
       
       await expect(provider.getUserProfileByWalletAddress(walletAddress))
-        .rejects.toThrow('User with wallet address 0x1234567890123456789012345678901234567890 not found');
+        .rejects.toThrow('Failed to fetch profile for wallet address 0x1234567890123456789012345678901234567890');
       
       expect(mockNeynarClient.fetchBulkUsersByEthOrSolAddress).toHaveBeenCalledWith({
         addresses: [walletAddress]
@@ -384,6 +385,263 @@ describe('FarcasterProvider', () => {
         filterType: 'global_trending',
         limit: 25
       });
+    });
+  });
+
+  describe('getTrendingFeed', () => {
+    it('should return trending feed using the default neynar provider', async () => {
+      // Mock the fetchFeed response
+      mockNeynarClient.fetchFeed.mockResolvedValueOnce({
+        casts: [
+          {
+            hash: '0xtrending1',
+            author: {
+              fid: 194,
+              username: 'rish',
+              display_name: 'rish'
+            },
+            text: 'Trending cast 1',
+            timestamp: '2025-02-12T16:00:21.000Z',
+            reactions: {
+              likes_count: 100,
+              recasts_count: 20
+            },
+            replies: {
+              count: 15
+            }
+          },
+          {
+            hash: '0xtrending2',
+            author: {
+              fid: 195,
+              username: 'user1',
+              display_name: 'User 1'
+            },
+            text: 'Trending cast 2',
+            timestamp: '2025-02-12T15:30:00.000Z',
+            reactions: {
+              likes_count: 80,
+              recasts_count: 15
+            },
+            replies: {
+              count: 10
+            }
+          }
+        ]
+      });
+
+      const result = await provider.getTrendingFeed();
+
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(2);
+      expect(result[0].text).toBe('Trending cast 1');
+      expect(result[1].text).toBe('Trending cast 2');
+      expect(mockNeynarClient.fetchFeed).toHaveBeenCalledWith({
+        feedType: 'filter',
+        filterType: 'global_trending',
+        limit: 20
+      });
+    });
+
+    it('should respect the limit option', async () => {
+      const limit = 5;
+      
+      // Mock the fetchFeed response
+      mockNeynarClient.fetchFeed.mockResolvedValueOnce({
+        casts: Array(10).fill(null).map((_, i) => ({
+          hash: `0xtrending${i + 1}`,
+          author: {
+            fid: 194 + i,
+            username: `user${i + 1}`,
+            display_name: `User ${i + 1}`
+          },
+          text: `Trending cast ${i + 1}`,
+          timestamp: '2025-02-12T16:00:21.000Z',
+          reactions: {
+            likes_count: 100,
+            recasts_count: 20
+          },
+          replies: {
+            count: 15
+          }
+        }))
+      });
+
+      const result = await provider.getTrendingFeed({ limit });
+
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(limit);
+      expect(mockNeynarClient.fetchFeed).toHaveBeenCalledWith({
+        feedType: 'filter',
+        filterType: 'global_trending',
+        limit
+      });
+    });
+
+    it('should handle empty trending feed', async () => {
+      // Mock the fetchFeed response with no casts
+      mockNeynarClient.fetchFeed.mockResolvedValueOnce({
+        casts: []
+      });
+
+      const result = await provider.getTrendingFeed();
+
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(0);
+      expect(mockNeynarClient.fetchFeed).toHaveBeenCalledWith({
+        feedType: 'filter',
+        filterType: 'global_trending',
+        limit: 20
+      });
+    });
+
+    it('should handle API errors gracefully', async () => {
+      // Mock the fetchFeed response with an error
+      mockNeynarClient.fetchFeed.mockRejectedValueOnce(new Error('API error'));
+
+      const result = await provider.getTrendingFeed();
+
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(0);
+      expect(mockNeynarClient.fetchFeed).toHaveBeenCalledWith({
+        feedType: 'filter',
+        filterType: 'global_trending',
+        limit: 20
+      });
+    });
+
+    it('should handle missing API key', async () => {
+      // Mock the config module to return no API key
+      jest.mock('../../../../src/config', () => ({
+        default: {
+          providers: {
+            farcaster: {
+              enabled: true,
+              neynarApiKey: ''
+            },
+            twitter: {
+              enabled: true,
+              apiKey: 'test_twitter_key',
+              apiSecret: 'test_twitter_secret'
+            },
+            telegram: {
+              enabled: true,
+              botToken: 'test_telegram_token'
+            }
+          }
+        }
+      }));
+
+      // Re-initialize the provider to use the mocked config
+      const provider = new FarcasterProvider();
+
+      const result = await provider.getTrendingFeed();
+
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(2);
+      expect(result[0].text).toContain('web3');
+      expect(result[1].text).toContain('frames');
+      expect(result[0].platform).toBe('farcaster');
+      expect(result[1].platform).toBe('farcaster');
+    });
+
+    it('should use alternative providers when specified', async () => {
+      const providerType = 'openrank';
+      const timeWindow = '12h';
+      
+      // Mock the fetch response for alternative provider
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          result: {
+            casts: [
+              {
+                hash: '0xtrending1',
+                author: {
+                  fid: 194,
+                  username: 'rish',
+                  display_name: 'rish'
+                },
+                text: 'Trending cast from OpenRank',
+                timestamp: '2025-02-12T16:00:21.000Z',
+                reactions: {
+                  likes_count: 100,
+                  recasts_count: 20
+                },
+                replies: {
+                  count: 15
+                }
+              }
+            ]
+          }
+        })
+      });
+
+      const result = await provider.getTrendingFeed({ provider: providerType, timeWindow });
+
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe('Trending cast from OpenRank');
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('api.neynar.com/v2/farcaster/feed/trending'),
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'api_key': 'test-api-key'
+          })
+        })
+      );
+    });
+
+    it('should handle MBD provider with custom filters', async () => {
+      const providerType = 'mbd';
+      const providerMetadata = {
+        startTimestamp: Math.floor(new Date('2025-02-12T00:00:00.000Z').getTime() / 1000),
+        endTimestamp: Math.floor(new Date('2025-02-12T23:59:59.000Z').getTime() / 1000),
+        minLikes: 100,
+        minRecasts: 20
+      };
+      
+      // Mock the fetch response for MBD provider
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        json: () => Promise.resolve({
+          result: {
+            casts: [
+              {
+                hash: '0xtrending1',
+                author: {
+                  fid: 194,
+                  username: 'rish',
+                  display_name: 'rish'
+                },
+                text: 'Trending cast from MBD',
+                timestamp: '2025-02-12T16:00:21.000Z',
+                reactions: {
+                  likes_count: 150,
+                  recasts_count: 30
+                },
+                replies: {
+                  count: 15
+                }
+              }
+            ]
+          }
+        })
+      });
+
+      const result = await provider.getTrendingFeed({ provider: providerType, providerMetadata });
+
+      expect(result).toBeDefined();
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe('Trending cast from MBD');
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('api.neynar.com/v2/farcaster/feed/trending'),
+        expect.objectContaining({
+          method: 'GET',
+          headers: expect.objectContaining({
+            'api_key': 'test-api-key'
+          })
+        })
+      );
     });
   });
 }); 

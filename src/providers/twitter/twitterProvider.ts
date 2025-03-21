@@ -51,6 +51,12 @@ export class TwitterProvider implements ContentProvider {
     return [];
   }
 
+  async getTrendingFeed(options: TrendingOptions = {}): Promise<SocialContent[]> {
+    // Not implemented yet - Twitter trending feed not supported
+    console.error('Twitter getTrendingFeed not implemented yet');
+    return [];
+  }
+
   async getUserProfileByWalletAddress(walletAddress: string): Promise<UserProfile> {
     console.error('Twitter does not support wallet-based profile lookup');
     return {

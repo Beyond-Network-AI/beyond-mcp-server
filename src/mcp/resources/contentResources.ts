@@ -1,6 +1,7 @@
 import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { ProviderRegistry } from '../../providers/registry';
 import { SocialContent } from '../../providers/interfaces/provider';
+import { TrendingOptions } from '../../providers/interfaces/provider';
 
 export function registerContentResources(server: McpServer, providerRegistry: ProviderRegistry) {
   // Search resource
@@ -210,6 +211,63 @@ export function registerContentResources(server: McpServer, providerRegistry: Pr
       }
     }
   );
+
+  // Trending feed resource
+  server.resource(
+    "trending-feed",
+    new ResourceTemplate("social://{platform}/trending-feed", { list: undefined }),
+    async (uri, params) => {
+      try {
+        const platform = params.platform as string;
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+
+        // Check if platform supports trending feed
+        if (platform !== 'farcaster') {
+          return {
+            contents: [{
+              uri: uri.href,
+              text: `Trending feed with multiple providers is currently only supported for Farcaster. For ${platform}, please use the trending topics endpoint instead.`
+            }]
+          };
+        }
+
+        // Parse query parameters for options
+        const options: TrendingOptions = {};
+        const queryParams = uri.searchParams;
+        
+        if (queryParams.has('provider')) {
+          options.provider = queryParams.get('provider') as 'neynar' | 'openrank' | 'mbd';
+        }
+        if (queryParams.has('timeWindow')) {
+          options.timeWindow = queryParams.get('timeWindow') as '1h' | '6h' | '12h' | '24h' | '7d' | '30d';
+        }
+        if (queryParams.has('limit')) {
+          options.limit = parseInt(queryParams.get('limit') || '20', 10);
+        }
+        
+        const feed = await provider.getTrendingFeed(options);
+        
+        return {
+          contents: [{
+            uri: uri.href,
+            text: formatTrendingFeed(feed, platform)
+          }]
+        };
+      } catch (error) {
+        console.error(`Error in trending feed resource:`, error);
+        return {
+          contents: [{
+            uri: uri.href,
+            text: `Error fetching ${params.platform} trending feed: ${error instanceof Error ? error.message : String(error)}`
+          }]
+        };
+      }
+    }
+  );
 }
 
 // Helper functions to format content for better LLM consumption
@@ -281,7 +339,6 @@ Original Post by @${rootContent.authorUsername} (${rootContent.authorName}):
   
   return `Thread on ${thread.platform}:\n${root}${repliesText}`;
 }
-
 function formatTrendingTopics(topics: string[], platform: string): string {
   if (topics.length === 0) {
     return `No trending topics available for ${platform}.`;
@@ -292,4 +349,24 @@ function formatTrendingTopics(topics: string[], platform: string): string {
   }).join('\n');
   
   return `Trending Topics on ${platform}:\n\n${formattedTopics}`;
+}
+
+function formatTrendingFeed(feed: SocialContent[], platform: string): string {
+  if (feed.length === 0) {
+    return `No trending content available for ${platform}.`;
+  }
+  
+  const formattedFeed = feed.map((content, index) => {
+    const author = content.authorName || content.authorUsername || 'Unknown Author';
+    const timestamp = new Date(content.createdAt).toLocaleString();
+    const engagement = [
+      content.likes ? `${content.likes} likes` : '',
+      content.reposts ? `${content.reposts} reposts` : '',
+      content.replies ? `${content.replies} replies` : ''
+    ].filter(Boolean).join(', ');
+
+    return `${index + 1}. ${content.text}\n   - By ${author} at ${timestamp}\n   - ${engagement}\n   - URL: ${content.url || 'N/A'}\n`;
+  }).join('\n');
+  
+  return `Trending Content on ${platform}:\n\n${formattedFeed}`;
 }

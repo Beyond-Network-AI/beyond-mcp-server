@@ -57,6 +57,10 @@ export interface ContentProvider {
   
   // Trending information
   getTrendingTopics(options?: TrendingOptions): Promise<string[]>;
+  getTrendingFeed(options?: TrendingOptions): Promise<SocialContent[]>;
+
+  // Optional methods for specific platforms
+  getUserBalance?(userId: string | number): Promise<any>;
 }
 
 export interface SearchOptions {
@@ -83,4 +87,11 @@ export interface TrendingOptions {
   limit?: number;
   category?: string;
   location?: string;
+  provider?: 'neynar' | 'openrank' | 'mbd';
+  timeWindow?: '1h' | '6h' | '12h' | '24h' | '7d' | '30d';
+  providerMetadata?: {
+    startTimestamp?: number;
+    endTimestamp?: number;
+    [key: string]: any;
+  };
 } 

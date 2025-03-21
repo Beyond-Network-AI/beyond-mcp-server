@@ -117,19 +117,32 @@ npm run build
 
 * `social://{platform}/{query}/search` - Search content on a platform
 * `social://{platform}/user/{userId}/profile` - Get user profile
+* `social://{platform}/wallet/{walletAddress}/profile` - Get user profile by wallet address (Farcaster only)
+* `social://{platform}/user/{userId}/balance` - Get user's wallet balance (Farcaster only)
+  - Accepts either FID (numeric) or username
+  - If username is provided, automatically converts to FID before fetching balance
 * `social://{platform}/wallet/{walletAddress}/profile` - Get user profile by wallet address
 * `social://{platform}/user/{userId}/content` - Get user content
 * `social://{platform}/thread/{threadId}` - Get conversation thread
 * `social://{platform}/trending` - Get trending topics
+* `social://{platform}/trending-feed` - Get trending feed content with multi-provider support (Farcaster only)
+  - Supports providers: neynar (default), openrank, mbd
+  - Parameters: timeWindow (1h, 6h, 12h, 24h, 7d, 30d), limit
 
 ### Tools
 
 * `search-content` - Search for content on a social platform
 * `get-user-profile` - Get a user's profile information
+* `get-user-profile-by-wallet` - Get user profile using wallet address (Farcaster only)
+* `get-user-balance` - Get user's wallet balance (Farcaster only)
+  - Accepts either FID (numeric) or username
+  - Automatically handles username to FID conversion
 * `get-user-content` - Get content from a specific user
 * `get-thread` - Get a conversation thread
 * `get-trending-topics` - Get current trending topics
+* `getTrendingFeed` - Get trending feed with multi-provider support (Farcaster only)
 * `get-wallet-profile` - Get profile based on wallet address
+
 
 ### Prompts
 
@@ -137,6 +150,11 @@ npm run build
 * `summarize-user-activity` - Summarize a user's activity
 * `explore-trending-topics` - Explore trending topics on a platform
 * `analyze-search-results` - Analyze search results for a query
+* `explore-trending-feed` - Analyze trending feed content across different providers
+* `get-wallet-profile` - Get and analyze user profile by wallet address
+* `check-user-balance` - Analyze user's wallet balance and holdings
+  - Works with both FID and username inputs
+  - Handles automatic FID resolution for usernames
 
 ## Extending with New Providers
 

@@ -1,4 +1,8 @@
 import path from 'path';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // No default API key - users must provide their own
 

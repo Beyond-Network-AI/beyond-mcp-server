@@ -55,6 +55,51 @@ export function registerContentPrompts(server: McpServer) {
     })
   );
   
+  // Prompt for exploring trending feed content
+  server.prompt(
+    "explore-trending-feed",
+    {
+      platform: z.string().describe("Social platform (farcaster, twitter, telegram)"),
+      provider: z.enum(['neynar', 'openrank', 'mbd']).optional().describe("Provider to use for trending feed (default: neynar)"),
+      timeWindow: z.enum(['1h', '6h', '12h', '24h', '7d', '30d']).optional().describe("Time window for trending content (default: 24h)"),
+      limit: z.string().optional().describe("Maximum number of trending items to analyze (default: 20)")
+    },
+    (args) => {
+      const { platform, provider, timeWindow, limit } = args;
+      
+      // Check if platform supports trending feed
+      if (platform !== 'farcaster') {
+        return {
+          messages: [{
+            role: "user",
+            content: {
+              type: "text",
+              text: `Trending feed with multiple providers is currently only supported for Farcaster. For ${platform}, please use the explore-trending-topics prompt instead to analyze trending topics.`
+            }
+          }]
+        };
+      }
+
+      return {
+        messages: [{
+          role: "user",
+          content: {
+            type: "text",
+            text: `Please analyze the trending content on ${platform}${provider ? ` using the ${provider} provider` : ''}${timeWindow ? ` from the last ${timeWindow}` : ''}. 
+            Focus on:
+            1. Key themes and topics in the trending content
+            2. Most engaging posts and why they're popular
+            3. Notable authors and their contributions
+            4. Patterns in content types (text, media, etc.)
+            5. How this trending content reflects current community interests
+            
+            Please provide a comprehensive analysis of the trending content and its significance.`
+          }
+        }]
+      };
+    }
+  );
+  
   // Prompt for content search analysis
   server.prompt(
     "analyze-search-results",
@@ -71,5 +116,40 @@ export function registerContentPrompts(server: McpServer) {
         }
       }]
     })
+  );
+
+  // Prompt for checking user balance
+  server.prompt(
+    "check-user-balance",
+    {
+      platform: z.string().describe("Social platform (farcaster, twitter, telegram)"),
+      fid: z.string().describe("Farcaster ID (FID) of the user")
+    },
+    (args) => {
+      const { platform, fid } = args;
+      
+      // Check if platform is Farcaster
+      if (platform !== 'farcaster') {
+        return {
+          messages: [{
+            role: "user",
+            content: {
+              type: "text",
+              text: `User balance functionality is currently only supported for Farcaster. Please use a different prompt for ${platform}.`
+            }
+          }]
+        };
+      }
+
+      return {
+        messages: [{
+          role: "user",
+          content: {
+            type: "text",
+            text: `Please check the balance for Farcaster user with FID ${fid}. This will show their Base network balance and associated wallet address. This information can be useful for understanding their on-chain activity and potential influence in the ecosystem.`
+          }
+        }]
+      };
+    }
   );
 } 

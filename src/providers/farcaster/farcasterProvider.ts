@@ -299,6 +299,12 @@ export class FarcasterProvider implements ContentProvider {
       
       console.error(`User found: ${user.username || user.fname}`);
       
+      // Extract wallet addresses and verifications
+      const verifiedAddresses = user.verified_addresses || {};
+      const ethAddresses = verifiedAddresses.eth_addresses || [];
+      const solAddresses = verifiedAddresses.sol_addresses || [];
+      const verifications = user.verifications || [];
+      
       return {
         id: String(user.fid),
         displayName: user.display_name || user.displayName || user.username || user.fname,
@@ -308,9 +314,20 @@ export class FarcasterProvider implements ContentProvider {
         followerCount: user.follower_count || user.followerCount || 0,
         followingCount: user.following_count || user.followingCount || 0,
         platform: this.platform,
-        verified: user.verified_addresses?.eth_addresses?.length > 0 || user.verifications?.length > 0,
+        verified: ethAddresses.length > 0 || verifications.length > 0,
         metadata: {
-          verifications: user.verifications || []
+          verifications: verifications,
+          verifiedEthAddresses: ethAddresses,
+          verifiedSolAddresses: solAddresses,
+          primaryEthAddress: ethAddresses[0] || undefined,
+          primarySolAddress: solAddresses[0] || undefined,
+          activeStatus: user.active_status || undefined,
+          viewerContext: user.viewer_context || undefined,
+          profileUrl: user.profile_url || undefined,
+          custodyAddress: user.custody_address || undefined,
+          recoveryAddress: user.recovery_address || undefined,
+          hasEmail: user.has_email || false,
+          powerBadge: user.power_badge || undefined
         }
       };
     } catch (error) {
@@ -776,6 +793,160 @@ export class FarcasterProvider implements ContentProvider {
       console.error('Error fetching trending topics:', error);
       // Fallback to default topics
       return ["farcaster", "web3", "crypto", "ai"];
+    }
+  }
+
+  async getTrendingFeed(options: TrendingOptions = {}): Promise<SocialContent[]> {
+    // Check if API key is provided
+    if (!config.providers.farcaster.neynarApiKey) {
+      console.error('Cannot get Farcaster trending feed: No API key provided');
+      return [{
+        id: 'error',
+        text: 'Cannot get Farcaster trending feed: No API key provided. Please set NEYNAR_API_KEY in your .env file.',
+        authorId: 'system',
+        authorName: 'System',
+        authorUsername: 'system',
+        createdAt: new Date().toISOString(),
+        platform: this.platform,
+        metadata: { error: 'missing_api_key' }
+      }];
+    }
+
+    try {
+      console.error('Fetching trending feed from Farcaster');
+      
+      // Default to neynar provider if none specified
+      const provider = options.provider || 'neynar';
+      console.error(`Using provider: ${provider}`);
+
+      // Prepare the request parameters
+      const params: any = {
+        limit: options.limit || 20,
+        time_window: options.timeWindow || '24h'
+      };
+
+      // Add provider-specific parameters
+      if (provider === 'mbd' && options.providerMetadata) {
+        // For MBD provider, we can add custom filters
+        const providerMetadata = {
+          filters: {
+            ...options.providerMetadata,
+            // Ensure we have valid timestamps if provided
+            start_timestamp: options.providerMetadata.startTimestamp,
+            end_timestamp: options.providerMetadata.endTimestamp
+          }
+        };
+        params.provider_metadata = encodeURIComponent(JSON.stringify(providerMetadata));
+      }
+
+      // Make the API call based on the provider
+      let response;
+      if (provider === 'neynar') {
+        response = await this.client.fetchFeed({
+          feedType: FeedType.Filter,
+          filterType: FilterType.GlobalTrending,
+          limit: params.limit
+        });
+      } else {
+        // For openrank and mbd providers, use the trending endpoint
+        const url = `https://api.neynar.com/v2/farcaster/feed/trending?${new URLSearchParams(params)}`;
+        const fetchResponse = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'accept': 'application/json',
+            'api_key': config.providers.farcaster.neynarApiKey
+          }
+        });
+        response = await fetchResponse.json();
+      }
+
+      console.error(`Response received: ${response ? 'Yes' : 'No'}`);
+      
+      // Handle different response formats based on provider
+      let casts: any[] = [];
+      if (provider === 'neynar') {
+        casts = response.casts || [];
+      } else {
+        // For openrank and mbd providers, the response format is different
+        casts = response.result?.casts || [];
+      }
+
+      if (!Array.isArray(casts) || casts.length === 0) {
+        console.error('No trending casts found');
+        return [];
+      }
+
+      console.error(`Found ${casts.length} trending casts`);
+      
+      // Map the casts to our standardized SocialContent format and apply limit
+      const mappedCasts = this.mapCastsToSocialContent(casts);
+      return options.limit ? mappedCasts.slice(0, options.limit) : mappedCasts;
+    } catch (error) {
+      console.error('Error fetching trending feed:', error);
+      return [];
+    }
+  }
+
+  async getUserBalance(userId: string | number): Promise<any> {
+    // Check if API key is provided
+    if (!config.providers.farcaster.neynarApiKey) {
+      console.error('Cannot get Farcaster user balance: No API key provided');
+      throw new Error('Cannot get Farcaster user balance: No API key provided. Please set NEYNAR_API_KEY in your .env file.');
+    }
+
+    try {
+      let fid: number;
+      
+      // Check if userId is a numeric FID or a username
+      if (typeof userId === 'number' || /^\d+$/.test(String(userId))) {
+        // If userId is numeric, parse it as FID
+        fid = typeof userId === 'number' ? userId : parseInt(String(userId), 10);
+        console.error(`Treating ${userId} as numeric FID: ${fid}`);
+      } else {
+        // If userId is not numeric, try to fetch by username
+        console.error(`Treating ${userId} as username, looking up user`);
+        try {
+          // Use searchUser for username lookups
+          const userResponse = await this.client.searchUser({ q: String(userId), limit: 1 });
+          
+          if (!userResponse || !userResponse.result || !userResponse.result.users || 
+              !Array.isArray(userResponse.result.users) || userResponse.result.users.length === 0) {
+            throw new Error(`User not found: ${userId}`);
+          }
+          
+          const user = userResponse.result.users[0];
+          if (!user || !user.fid) {
+            throw new Error(`User not found: ${userId}`);
+          }
+          
+          fid = user.fid;
+          console.error(`Found FID ${fid} for username ${userId}`);
+        } catch (error) {
+          console.error(`Error looking up user by username: ${error}`);
+          throw new Error(`Failed to find user: ${userId}`);
+        }
+      }
+
+      console.error(`Fetching user balance for FID: ${fid}`);
+      
+      // Make the API call to fetch user balance
+      const response = await this.client.fetchUserBalance({
+        fid: fid,
+        networks: ['base'] // Currently, only 'base' is supported
+      });
+
+      console.error(`Response received: ${response ? 'Yes' : 'No'}`);
+      
+      if (!response || !response.user_balance) {
+        console.error('No balance data found in response');
+        throw new Error('No balance data found for user');
+      }
+
+      // Return the user_balance object directly
+      return response.user_balance;
+    } catch (error) {
+      console.error('Error fetching user balance:', error);
+      throw error;
     }
   }
 } 

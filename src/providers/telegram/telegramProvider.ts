@@ -51,6 +51,12 @@ export class TelegramProvider implements ContentProvider {
     return [];
   }
 
+  async getTrendingFeed(options: TrendingOptions = {}): Promise<SocialContent[]> {
+    // Not implemented yet - Telegram trending feed not supported
+    console.error('Telegram getTrendingFeed not implemented yet');
+    return [];
+  }
+
   async getUserProfileByWalletAddress(walletAddress: string): Promise<UserProfile> {
     console.error('Telegram does not support wallet-based profile lookup');
     return {
