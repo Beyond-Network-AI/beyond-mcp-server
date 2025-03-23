@@ -131,6 +131,9 @@ npm run build
 * `social://{platform}/channels/search` - Search for channels on a platform (Farcaster only)
   - Parameters: query, limit, cursor
   - Returns channel details including name, description, follower count, and metadata
+* `social://{platform}/channels/bulk-search` - Search for multiple channels in parallel (Farcaster only)
+  - Parameters: queries (array), limit, cursor
+  - Returns results for each query with channel details and pagination info
 
 ### Tools
 
@@ -146,7 +149,11 @@ npm run build
 * `getTrendingFeed` - Get trending feed with multi-provider support (Farcaster only)
 * `get-wallet-profile` - Get profile based on wallet address
 * `search-channels` - Search for channels on a platform (Farcaster only)
-
+  - Parameters: query, limit, cursor
+  - Returns detailed channel information including follower count and metadata
+* `search-bulk-channels` - Search for multiple channels in parallel (Farcaster only)
+  - Parameters: queries (array), limit, cursor
+  - Returns results for each query with channel details and pagination info
 
 ### Prompts
 
@@ -160,6 +167,11 @@ npm run build
   - Works with both FID and username inputs
   - Handles automatic FID resolution for usernames
 * `explore-channels` - Analyze and explore channels on a platform
+  - Provides insights about channel popularity and content
+  - Helps discover relevant channels based on search criteria
+* `explore-bulk-channels` - Analyze and compare multiple channels in parallel
+  - Efficiently searches and compares multiple channels
+  - Provides insights about channel relationships and trends
 
 ## Extending with New Providers
 

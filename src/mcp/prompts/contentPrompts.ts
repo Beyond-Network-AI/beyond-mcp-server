@@ -152,4 +152,67 @@ export function registerContentPrompts(server: McpServer) {
       };
     }
   );
+
+  // Prompt for single channel search
+  server.prompt(
+    "search-channels",
+    "Search for a single channel on a social platform",
+    {
+      platform: z.string().describe("Social platform (farcaster, twitter, telegram)"),
+      query: z.string().describe("Channel search query"),
+      limit: z.string().optional().describe("Maximum number of results (default: 10)")
+    },
+    (args) => {
+      const { platform, query, limit } = args;
+      return {
+        messages: [{
+          role: "user",
+          content: {
+            type: "text",
+            text: `Please search for a channel on ${platform} using the query: "${query}". 
+            Provide:
+            1. Channel name and description
+            2. Number of followers
+            3. Creation date
+            4. Channel URL
+            5. Any notable characteristics or significance
+            
+            Please format the results clearly and include any relevant insights about the channel found.`
+          }
+        }]
+      };
+    }
+  );
+
+  // Prompt for bulk channel search
+  server.prompt(
+    "search-bulk-channels",
+    "Search for multiple channels on a social platform in parallel",
+    {
+      platform: z.string().describe("Social platform (farcaster, twitter, telegram)"),
+      queries: z.string().describe("Comma-separated list of channel search queries"),
+      limit: z.string().optional().describe("Maximum number of results per query (default: 10)")
+    },
+    (args) => {
+      const { platform, queries, limit } = args;
+      const queryList = queries.split(',').map(q => q.trim());
+      return {
+        messages: [{
+          role: "user",
+          content: {
+            type: "text",
+            text: `Please search for multiple channels on ${platform} using the following queries: ${queryList.join(', ')}. 
+            For each query, provide:
+            1. Channel name and description
+            2. Number of followers
+            3. Creation date
+            4. Channel URL
+            5. Any notable characteristics or significance
+            
+            Please format the results clearly for each query and include any relevant insights about the channels found.`
+          }
+        }]
+      };
+    }
+  );
 } 

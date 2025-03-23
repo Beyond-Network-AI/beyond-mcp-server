@@ -62,48 +62,32 @@ export function registerContentTools(server: McpServer, providerRegistry: Provid
   // Search channels tool
   server.tool(
     "search-channels",
+    "Search for channels on a social platform",
     {
-      platform: z.string().describe("Social platform (farcaster, twitter, telegram)"),
-      query: z.string().describe("Search query"),
+      platform: z.string().describe("The platform to search on (e.g., 'farcaster')"),
+      query: z.string().describe("The search query"),
       limit: z.number().optional().describe("Maximum number of results to return"),
-      cursor: z.string().optional().describe("Pagination cursor for fetching more results"),
-      includeChannels: z.boolean().optional().describe("Whether to include channel information")
+      cursor: z.string().optional().describe("Cursor for pagination"),
+      includeChannels: z.boolean().optional().describe("Whether to include channel information in results")
     },
-    async ({ platform, query, limit = 10, cursor, includeChannels }) => {
+    async ({ platform, query, limit, cursor, includeChannels }) => {
       try {
-        console.error(`search-channels tool called for platform: ${platform}, query: ${query}`);
         const provider = providerRegistry.getProviderForPlatform(platform);
         
         if (!provider) {
-          console.error(`Provider for platform '${platform}' not found or not enabled`);
-          return {
-            content: [{ type: "text", text: `Provider for platform '${platform}' not found or not enabled` }],
-            isError: true
-          };
-        }
-        
-        // Check if the provider is available
-        console.error(`Checking if provider ${provider.name} is available`);
-        const isAvailable = await provider.isAvailable();
-        if (!isAvailable) {
-          console.error(`Provider ${provider.name} is not available`);
-          return {
-            content: [{ type: "text", text: `Provider for platform '${platform}' is not available` }],
-            isError: true
-          };
+          throw new Error(`Provider for platform '${platform}' not found`);
         }
 
         // Check if the provider supports channel search
         if (!provider.searchChannels) {
-          console.error(`Provider ${provider.name} does not support channel search`);
-          return {
-            content: [{ type: "text", text: `Channel search is not supported for platform '${platform}'` }],
-            isError: true
-          };
+          throw new Error(`Channel search is not supported for platform '${platform}'`);
         }
         
-        console.error(`Using provider: ${provider.name} for channel search`);
-        const results = await provider.searchChannels(query, { limit, cursor, includeChannels });
+        const results = await provider.searchChannels(query, {
+          limit,
+          cursor,
+          includeChannels
+        });
         
         // Format the results
         const formattedResults = results.channels.map(channel => 
@@ -118,7 +102,7 @@ export function registerContentTools(server: McpServer, providerRegistry: Provid
         if (results.nextCursor) {
           response += `\n\nUse the cursor "${results.nextCursor}" to fetch more results.`;
         }
-
+        
         return {
           content: [{ type: "text", text: response }],
           isError: false
@@ -128,7 +112,75 @@ export function registerContentTools(server: McpServer, providerRegistry: Provid
         return {
           content: [{ 
             type: "text", 
-            text: `Error searching channels on ${platform}: ${error instanceof Error ? error.message : String(error)}` 
+            text: `Error searching channels on ${platform} for '${query}': ${error instanceof Error ? error.message : String(error)}` 
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+  
+  // Bulk search channels tool
+  server.tool(
+    "search-bulk-channels",
+    "Search for multiple channels on a social platform in parallel",
+    {
+      platform: z.string().describe("The platform to search on (e.g., 'farcaster')"),
+      queries: z.array(z.string()).describe("Array of search queries"),
+      limit: z.number().optional().describe("Maximum number of results to return per query"),
+      cursor: z.string().optional().describe("Cursor for pagination")
+    },
+    async ({ platform, queries, limit, cursor }) => {
+      try {
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+
+        // Check if the provider supports bulk channel search
+        if (!provider.searchBulkChannels) {
+          throw new Error(`Bulk channel search is not supported for platform '${platform}'`);
+        }
+        
+        const results = await provider.searchBulkChannels(queries, {
+          limit,
+          cursor
+        });
+        
+        // Format the results
+        let response = `Search Results for ${queries.length} queries:\n\n`;
+        
+        for (const [query, result] of Object.entries(results)) {
+          response += `Results for "${query}":\n`;
+          if (result.channels.length === 0) {
+            response += 'No channels found.\n';
+          } else {
+            const formattedChannels = result.channels.map(channel => 
+              `Channel: ${channel.name}\n` +
+              `Description: ${channel.description || 'No description'}\n` +
+              `Followers: ${channel.followerCount}\n` +
+              `Created: ${channel.createdAt}\n` +
+              `URL: ${channel.parentUrl || 'N/A'}\n`
+            ).join('\n');
+            response += formattedChannels + '\n';
+          }
+          if (result.nextCursor) {
+            response += `Use the cursor "${result.nextCursor}" to fetch more results for this query.\n`;
+          }
+          response += '\n';
+        }
+        
+        return {
+          content: [{ type: "text", text: response }],
+          isError: false
+        };
+      } catch (error) {
+        console.error(`Error in search-bulk-channels tool:`, error);
+        return {
+          content: [{ 
+            type: "text", 
+            text: `Error performing bulk channel search on ${platform}: ${error instanceof Error ? error.message : String(error)}` 
           }],
           isError: true
         };

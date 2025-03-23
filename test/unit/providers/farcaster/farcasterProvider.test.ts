@@ -644,4 +644,88 @@ describe('FarcasterProvider', () => {
       );
     });
   });
+
+  describe('searchChannels', () => {
+    // ... existing tests ...
+  });
+
+  describe('searchBulkChannels', () => {
+    it('should throw error when no API key is provided', async () => {
+      // Override the config to remove the API key
+      mockConfig.providers.farcaster.neynarApiKey = '';
+      
+      const providerWithoutKey = new FarcasterProvider();
+      
+      await expect(providerWithoutKey.searchBulkChannels(['test'])).rejects.toThrow(
+        'Cannot search Farcaster channels: No API key provided'
+      );
+    });
+
+    it('should search multiple channels with default parameters', async () => {
+      const queries = ['beyond-ai', 'test'];
+      
+      const result = await provider.searchBulkChannels(queries);
+      
+      expect(result).toBeDefined();
+      expect(Object.keys(result)).toHaveLength(2);
+      expect(result['beyond-ai'].channels).toHaveLength(1);
+      expect(result['test'].channels).toHaveLength(1);
+      expect(result['beyond-ai'].channels[0].name).toBe('Beyond AI');
+      expect(result['test'].channels[0].name).toBe('Test Channel');
+      
+      expect(mockNeynarClient.searchBulkChannels).toHaveBeenCalledWith(
+        queries,
+        expect.objectContaining({
+          limit: 20,
+          cursor: undefined
+        })
+      );
+    });
+
+    it('should search multiple channels with custom parameters', async () => {
+      const queries = ['beyond-ai', 'test'];
+      const options = {
+        limit: 10,
+        cursor: 'current-page'
+      };
+      
+      const result = await provider.searchBulkChannels(queries, options);
+      
+      expect(result).toBeDefined();
+      expect(Object.keys(result)).toHaveLength(2);
+      expect(result['beyond-ai'].channels).toHaveLength(1);
+      expect(result['test'].channels).toHaveLength(1);
+      
+      expect(mockNeynarClient.searchBulkChannels).toHaveBeenCalledWith(
+        queries,
+        expect.objectContaining(options)
+      );
+    });
+
+    it('should handle empty queries array', async () => {
+      const result = await provider.searchBulkChannels([]);
+      
+      expect(result).toBeDefined();
+      expect(Object.keys(result)).toHaveLength(0);
+    });
+
+    it('should handle queries with no results', async () => {
+      const queries = ['nonexistent', 'another-nonexistent'];
+      
+      const result = await provider.searchBulkChannels(queries);
+      
+      expect(result).toBeDefined();
+      expect(Object.keys(result)).toHaveLength(2);
+      expect(result['nonexistent'].channels).toHaveLength(0);
+      expect(result['another-nonexistent'].channels).toHaveLength(0);
+    });
+
+    it('should handle API errors gracefully', async () => {
+      mockNeynarClient.searchBulkChannels.mockRejectedValueOnce(new Error('API Error'));
+      
+      const queries = ['beyond-ai', 'test'];
+      
+      await expect(provider.searchBulkChannels(queries)).rejects.toThrow('API Error');
+    });
+  });
 }); 

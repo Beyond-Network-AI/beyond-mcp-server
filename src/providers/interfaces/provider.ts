@@ -62,6 +62,26 @@ export interface ContentProvider {
   // Optional methods for specific platforms
   getUserBalance?(userId: string | number): Promise<any>;
   searchChannels?(query: string, options?: ChannelSearchOptions): Promise<ChannelSearchResult>;
+  searchBulkChannels?(queries: string[], options?: {
+    limit?: number;
+    cursor?: string;
+    includeChannels?: boolean;
+  }): Promise<{
+    [query: string]: {
+      channels: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        followerCount: number;
+        parentUrl?: string;
+        imageUrl?: string;
+        leadFid?: number;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+      nextCursor?: string;
+    };
+  }>;
 }
 
 export interface SearchOptions {
