@@ -249,5 +249,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
    - Implemented multi-provider support for trending feed content
    - Enhanced updateUserProfile with additional user details
    - Added comprehensive tests to ensure reliability and performance
-     
+  
+   ### [1.0.3] - 2025-Mar-24
+   
+   #### Added
+   - Add support to fetch Single and Bulk farcaster channel information 
    
