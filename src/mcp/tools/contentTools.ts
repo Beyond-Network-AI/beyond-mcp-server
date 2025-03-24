@@ -59,6 +59,135 @@ export function registerContentTools(server: McpServer, providerRegistry: Provid
     }
   );
   
+  // Search channels tool
+  server.tool(
+    "search-channels",
+    "Search for channels on a social platform",
+    {
+      platform: z.string().describe("The platform to search on (e.g., 'farcaster')"),
+      query: z.string().describe("The search query"),
+      limit: z.number().optional().describe("Maximum number of results to return"),
+      cursor: z.string().optional().describe("Cursor for pagination"),
+      includeChannels: z.boolean().optional().describe("Whether to include channel information in results")
+    },
+    async ({ platform, query, limit, cursor, includeChannels }) => {
+      try {
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+
+        // Check if the provider supports channel search
+        if (!provider.searchChannels) {
+          throw new Error(`Channel search is not supported for platform '${platform}'`);
+        }
+        
+        const results = await provider.searchChannels(query, {
+          limit,
+          cursor,
+          includeChannels
+        });
+        
+        // Format the results
+        const formattedResults = results.channels.map(channel => 
+          `Channel: ${channel.name}\n` +
+          `Description: ${channel.description || 'No description'}\n` +
+          `Followers: ${channel.followerCount}\n` +
+          `Created: ${channel.createdAt}\n` +
+          `URL: ${channel.parentUrl || 'N/A'}\n`
+        ).join('\n');
+
+        let response = `Found ${results.channels.length} channels:\n\n${formattedResults}`;
+        if (results.nextCursor) {
+          response += `\n\nUse the cursor "${results.nextCursor}" to fetch more results.`;
+        }
+        
+        return {
+          content: [{ type: "text", text: response }],
+          isError: false
+        };
+      } catch (error) {
+        console.error(`Error in search-channels tool:`, error);
+        return {
+          content: [{ 
+            type: "text", 
+            text: `Error searching channels on ${platform} for '${query}': ${error instanceof Error ? error.message : String(error)}` 
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+  
+  // Bulk search channels tool
+  server.tool(
+    "search-bulk-channels",
+    "Search for multiple channels on a social platform in parallel",
+    {
+      platform: z.string().describe("The platform to search on (e.g., 'farcaster')"),
+      queries: z.array(z.string()).describe("Array of search queries"),
+      limit: z.number().optional().describe("Maximum number of results to return per query"),
+      cursor: z.string().optional().describe("Cursor for pagination")
+    },
+    async ({ platform, queries, limit, cursor }) => {
+      try {
+        const provider = providerRegistry.getProviderForPlatform(platform);
+        
+        if (!provider) {
+          throw new Error(`Provider for platform '${platform}' not found`);
+        }
+
+        // Check if the provider supports bulk channel search
+        if (!provider.searchBulkChannels) {
+          throw new Error(`Bulk channel search is not supported for platform '${platform}'`);
+        }
+        
+        const results = await provider.searchBulkChannels(queries, {
+          limit,
+          cursor
+        });
+        
+        // Format the results
+        let response = `Search Results for ${queries.length} queries:\n\n`;
+        
+        for (const [query, result] of Object.entries(results)) {
+          response += `Results for "${query}":\n`;
+          if (result.channels.length === 0) {
+            response += 'No channels found.\n';
+          } else {
+            const formattedChannels = result.channels.map(channel => 
+              `Channel: ${channel.name}\n` +
+              `Description: ${channel.description || 'No description'}\n` +
+              `Followers: ${channel.followerCount}\n` +
+              `Created: ${channel.createdAt}\n` +
+              `URL: ${channel.parentUrl || 'N/A'}\n`
+            ).join('\n');
+            response += formattedChannels + '\n';
+          }
+          if (result.nextCursor) {
+            response += `Use the cursor "${result.nextCursor}" to fetch more results for this query.\n`;
+          }
+          response += '\n';
+        }
+        
+        return {
+          content: [{ type: "text", text: response }],
+          isError: false
+        };
+      } catch (error) {
+        console.error(`Error in search-bulk-channels tool:`, error);
+        return {
+          content: [{ 
+            type: "text", 
+            text: `Error performing bulk channel search on ${platform}: ${error instanceof Error ? error.message : String(error)}` 
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+  
   // Get user profile tool
   server.tool(
     "get-user-profile",

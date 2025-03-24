@@ -6,7 +6,9 @@ import {
   SearchOptions,
   ContentOptions,
   ThreadOptions,
-  TrendingOptions
+  TrendingOptions,
+  ChannelSearchOptions,
+  ChannelSearchResult
 } from '../interfaces/provider';
 import config from '../../config';
 
@@ -52,7 +54,7 @@ export class TelegramProvider implements ContentProvider {
   }
 
   async getTrendingFeed(options: TrendingOptions = {}): Promise<SocialContent[]> {
-    // Not implemented yet - Telegram trending feed not supported
+    // Not implemented yet
     console.error('Telegram getTrendingFeed not implemented yet');
     return [];
   }
@@ -70,5 +72,11 @@ export class TelegramProvider implements ContentProvider {
         message: 'Telegram does not support wallet-based profile lookup'
       }
     };
+  }
+
+  async searchChannels(query: string, options: ChannelSearchOptions = {}): Promise<ChannelSearchResult> {
+    // Telegram channels are not supported
+    console.error('Telegram channels are not supported');
+    throw new Error('Channel search is not supported for Telegram platform');
   }
 } 

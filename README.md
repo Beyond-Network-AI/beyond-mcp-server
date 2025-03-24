@@ -128,6 +128,12 @@ npm run build
 * `social://{platform}/trending-feed` - Get trending feed content with multi-provider support (Farcaster only)
   - Supports providers: neynar (default), openrank, mbd
   - Parameters: timeWindow (1h, 6h, 12h, 24h, 7d, 30d), limit
+* `social://{platform}/channels/search` - Search for channels on a platform (Farcaster only)
+  - Parameters: query, limit, cursor
+  - Returns channel details including name, description, follower count, and metadata
+* `social://{platform}/channels/bulk-search` - Search for multiple channels in parallel (Farcaster only)
+  - Parameters: queries (array), limit, cursor
+  - Returns results for each query with channel details and pagination info
 
 ### Tools
 
@@ -142,7 +148,12 @@ npm run build
 * `get-trending-topics` - Get current trending topics
 * `getTrendingFeed` - Get trending feed with multi-provider support (Farcaster only)
 * `get-wallet-profile` - Get profile based on wallet address
-
+* `search-channels` - Search for channels on a platform (Farcaster only)
+  - Parameters: query, limit, cursor
+  - Returns detailed channel information including follower count and metadata
+* `search-bulk-channels` - Search for multiple channels in parallel (Farcaster only)
+  - Parameters: queries (array), limit, cursor
+  - Returns results for each query with channel details and pagination info
 
 ### Prompts
 
@@ -155,6 +166,12 @@ npm run build
 * `check-user-balance` - Analyze user's wallet balance and holdings
   - Works with both FID and username inputs
   - Handles automatic FID resolution for usernames
+* `explore-channels` - Analyze and explore channels on a platform
+  - Provides insights about channel popularity and content
+  - Helps discover relevant channels based on search criteria
+* `explore-bulk-channels` - Analyze and compare multiple channels in parallel
+  - Efficiently searches and compares multiple channels
+  - Provides insights about channel relationships and trends
 
 ## Extending with New Providers
 
@@ -232,5 +249,9 @@ Contributions are welcome! Please feel free to submit a Pull Request.
    - Implemented multi-provider support for trending feed content
    - Enhanced updateUserProfile with additional user details
    - Added comprehensive tests to ensure reliability and performance
-     
+  
+   ### [1.0.3] - 2025-Mar-24
+   
+   #### Added
+   - Add support to fetch Single and Bulk farcaster channel information 
    

@@ -949,4 +949,354 @@ export class FarcasterProvider implements ContentProvider {
       throw error;
     }
   }
+
+  async searchChannels(query: string, options: { 
+    limit?: number;
+    cursor?: string;
+    includeChannels?: boolean;
+  } = {}): Promise<{
+    channels: Array<{
+      id: string;
+      name: string;
+      description?: string;
+      followerCount: number;
+      parentUrl?: string;
+      imageUrl?: string;
+      leadFid?: number;
+      createdAt: string;
+      updatedAt: string;
+      focusAreas?: string[];
+      communityStats?: {
+        followers: number;
+        created: string;
+        lastUpdated: string;
+      };
+      significance?: string;
+    }>;
+    nextCursor?: string;
+  }> {
+    // Check if API key is provided
+    if (!config.providers.farcaster.neynarApiKey) {
+      console.error('Cannot search Farcaster channels: No API key provided');
+      throw new Error('Cannot search Farcaster channels: No API key provided. Please set NEYNAR_API_KEY in your .env file.');
+    }
+
+    try {
+      console.error(`Searching Farcaster channels for: "${query}"`);
+      
+      // Prepare the request parameters
+      const params: any = {
+        q: query,
+        limit: options.limit || 20
+      };
+
+      // Add cursor if provided
+      if (options.cursor) {
+        params.cursor = options.cursor;
+      }
+
+      // Add include_channels parameter if specified
+      if (options.includeChannels !== undefined) {
+        params.include_channels = options.includeChannels;
+      }
+
+      // Make the API call to search channels
+      const response = await this.client.searchChannels(params);
+
+      console.error(`Response received: ${response ? 'Yes' : 'No'}`);
+      
+      if (!response || !response.channels || !Array.isArray(response.channels)) {
+        console.error('No channels found in response');
+        return {
+          channels: [],
+          nextCursor: undefined
+        };
+      }
+
+      console.error(`Found ${response.channels.length} channels`);
+
+      // Map the response to our standardized format with enhanced information
+      const channels = response.channels.map((channel: any) => {
+        // Extract focus areas from description
+        const focusAreas = channel.description
+          ? this.extractFocusAreas(channel.description)
+          : [];
+
+        // Format dates
+        const createdAt = new Date(channel.created_at * 1000).toISOString();
+        const updatedAt = channel.updated_at || createdAt;
+
+        // Determine channel significance
+        const significance = this.determineChannelSignificance(channel);
+
+        return {
+          id: channel.id || '',
+          name: channel.name || '',
+          description: channel.description,
+          followerCount: channel.follower_count || 0,
+          parentUrl: channel.parent_url,
+          imageUrl: channel.image_url,
+          leadFid: channel.lead_fid,
+          createdAt,
+          updatedAt,
+          focusAreas,
+          communityStats: {
+            followers: channel.follower_count || 0,
+            created: createdAt,
+            lastUpdated: updatedAt
+          },
+          significance
+        };
+      });
+
+      // Log detailed information about each channel
+      channels.forEach((channel: {
+        name: string;
+        description?: string;
+        focusAreas?: string[];
+        followerCount: number;
+        createdAt: string;
+        updatedAt: string;
+        significance?: string;
+      }) => {
+        console.error(`
+Channel Details for "${query}":
+- Name: ${channel.name}
+- Description: ${channel.description || 'N/A'}
+- Focus Areas: ${channel.focusAreas?.join(', ') || 'N/A'}
+- Followers: ${channel.followerCount}
+- Created: ${channel.createdAt}
+- Last Updated: ${channel.updatedAt}
+- Significance: ${channel.significance || 'N/A'}
+        `);
+      });
+
+      return {
+        channels,
+        nextCursor: response.next?.cursor
+      };
+
+    } catch (error) {
+      console.error('Error searching channels:', error);
+      throw error;
+    }
+  }
+
+  async searchBulkChannels(queries: string[], options: {
+    limit?: number;
+    cursor?: string;
+    includeChannels?: boolean;
+  } = {}): Promise<{
+    [query: string]: {
+      channels: Array<{
+        id: string;
+        name: string;
+        description?: string;
+        followerCount: number;
+        parentUrl?: string;
+        imageUrl?: string;
+        leadFid?: number;
+        createdAt: string;
+        updatedAt: string;
+        focusAreas?: string[];
+        communityStats?: {
+          followers: number;
+          created: string;
+          lastUpdated: string;
+        };
+        significance?: string;
+      }>;
+      nextCursor?: string;
+    };
+  }> {
+    // Check if API key is provided
+    if (!config.providers.farcaster.neynarApiKey) {
+      console.error('Cannot search Farcaster channels: No API key provided');
+      throw new Error('Cannot search Farcaster channels: No API key provided. Please set NEYNAR_API_KEY in your .env file.');
+    }
+
+    try {
+      console.error(`Searching Farcaster channels for ${queries.length} queries`);
+      
+      // Prepare the request parameters
+      const params: any = {
+        limit: options.limit || 20
+      };
+
+      // Add cursor if provided
+      if (options.cursor) {
+        params.cursor = options.cursor;
+      }
+
+      // Add include_channels parameter if specified
+      if (options.includeChannels !== undefined) {
+        params.include_channels = options.includeChannels;
+      }
+
+      // Create a map to store results for each query
+      const results: {
+        [query: string]: {
+          channels: Array<{
+            id: string;
+            name: string;
+            description?: string;
+            followerCount: number;
+            parentUrl?: string;
+            imageUrl?: string;
+            leadFid?: number;
+            createdAt: string;
+            updatedAt: string;
+            focusAreas?: string[];
+            communityStats?: {
+              followers: number;
+              created: string;
+              lastUpdated: string;
+            };
+            significance?: string;
+          }>;
+          nextCursor?: string;
+        };
+      } = {};
+
+      // Process each query in parallel
+      await Promise.all(
+        queries.map(async (query) => {
+          try {
+            console.error(`Processing query: "${query}"`);
+            
+            // Add the query to the parameters
+            params.q = query;
+
+            // Make the API call to search channels
+            const response = await this.client.searchChannels(params);
+
+            console.error(`Response received for query "${query}": ${response ? 'Yes' : 'No'}`);
+            
+            if (!response || !response.channels || !Array.isArray(response.channels)) {
+              console.error(`No channels found for query: "${query}"`);
+              results[query] = {
+                channels: [],
+                nextCursor: undefined
+              };
+              return;
+            }
+
+            console.error(`Found ${response.channels.length} channels for query "${query}"`);
+
+            // Map the response to our standardized format with enhanced information
+            const channels = response.channels.map((channel: any) => {
+              // Extract focus areas from description
+              const focusAreas = channel.description
+                ? this.extractFocusAreas(channel.description)
+                : [];
+
+              // Format dates
+              const createdAt = new Date(channel.created_at * 1000).toISOString();
+              const updatedAt = channel.updated_at || createdAt;
+
+              // Determine channel significance
+              const significance = this.determineChannelSignificance(channel);
+
+              return {
+                id: channel.id || '',
+                name: channel.name || '',
+                description: channel.description,
+                followerCount: channel.follower_count || 0,
+                parentUrl: channel.parent_url,
+                imageUrl: channel.image_url,
+                leadFid: channel.lead_fid,
+                createdAt,
+                updatedAt,
+                focusAreas,
+                communityStats: {
+                  followers: channel.follower_count || 0,
+                  created: createdAt,
+                  lastUpdated: updatedAt
+                },
+                significance
+              };
+            });
+
+            results[query] = {
+              channels,
+              nextCursor: response.next?.cursor
+            };
+
+            // Log detailed information about each channel
+            channels.forEach((channel: {
+              name: string;
+              description?: string;
+              focusAreas?: string[];
+              followerCount: number;
+              createdAt: string;
+              updatedAt: string;
+              significance?: string;
+            }) => {
+              console.error(`
+Channel Details for "${query}":
+- Name: ${channel.name}
+- Description: ${channel.description || 'N/A'}
+- Focus Areas: ${channel.focusAreas?.join(', ') || 'N/A'}
+- Followers: ${channel.followerCount}
+- Created: ${channel.createdAt}
+- Last Updated: ${channel.updatedAt}
+- Significance: ${channel.significance || 'N/A'}
+              `);
+            });
+
+          } catch (error) {
+            console.error(`Error processing query "${query}":`, error);
+            results[query] = {
+              channels: [],
+              nextCursor: undefined
+            };
+          }
+        })
+      );
+
+      return results;
+
+    } catch (error) {
+      console.error('Error in bulk channel search:', error);
+      throw error;
+    }
+  }
+
+  private extractFocusAreas(description: string): string[] {
+    // Extract key topics from description
+    const topics = description.toLowerCase()
+      .split(/[.,;]|\band\b|\bor\b/)
+      .map(topic => topic.trim())
+      .filter(topic => topic.length > 0);
+
+    // Remove common words and keep only relevant topics
+    const commonWords = ['the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with'];
+    return topics
+      .filter(topic => !commonWords.includes(topic))
+      .map(topic => topic.charAt(0).toUpperCase() + topic.slice(1));
+  }
+
+  private determineChannelSignificance(channel: {
+    name: string;
+    description?: string;
+    follower_count?: number;
+    image_url?: string;
+  }): string {
+    const followerCount = channel.follower_count || 0;
+    const hasDescription = !!channel.description;
+    const hasImage = !!channel.image_url;
+    const isOfficialChannel = channel.name.toLowerCase().includes('official');
+
+    if (isOfficialChannel) {
+      return 'Official channel for platform/project updates and announcements';
+    } else if (followerCount > 10000) {
+      return 'Major community hub with significant following';
+    } else if (followerCount > 1000) {
+      return 'Growing community with active engagement';
+    } else if (hasDescription && hasImage) {
+      return 'Well-maintained channel with regular updates';
+    } else {
+      return 'Emerging channel in development';
+    }
+  }
 } 

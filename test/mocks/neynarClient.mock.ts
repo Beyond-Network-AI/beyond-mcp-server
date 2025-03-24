@@ -402,6 +402,120 @@ export const mockNeynarClient = {
       ];
     }
     return [];
+  }),
+
+  searchChannels: jest.fn().mockImplementation(({ q, limit = 20, cursor }) => {
+    if (q === 'beyond-ai') {
+      return Promise.resolve({
+        channels: [{
+          id: 'beyond-ai',
+          name: 'Beyond AI',
+          description: 'AI Inference Network for Onchain Agents and Gaming',
+          follower_count: 11,
+          parent_url: 'https://warpcast.com/~/channel/beyond-ai',
+          image_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/6bff7396-073f-48e9-2bc9-07573ea27000/original',
+          lead_fid: undefined,
+          created_at: 1741783577,
+          updated_at: '2025-03-21T17:05:23.018Z'
+        }],
+        next: { cursor: null }
+      });
+    } else if (q === 'test') {
+      return Promise.resolve({
+        channels: [{
+          id: '1',
+          name: 'Test Channel',
+          description: 'Test channel description',
+          follower_count: 100,
+          parent_url: 'https://warpcast.com/~/channel/test',
+          image_url: 'https://example.com/image.jpg',
+          lead_fid: undefined,
+          created_at: 1741783577,
+          updated_at: '2024-03-21T00:00:00Z'
+        }],
+        next: { cursor: null }
+      });
+    } else if (q === 'nonexistent') {
+      return Promise.resolve({
+        channels: [],
+        next: { cursor: null }
+      });
+    }
+    return Promise.resolve({
+      channels: [],
+      next: { cursor: null }
+    });
+  }),
+
+  searchBulkChannels: jest.fn().mockImplementation((queries) => {
+    const results: any = {};
+    
+    queries.forEach((query: string) => {
+      if (query === 'beyond-ai') {
+        results[query] = {
+          channels: [{
+            id: 'beyond-ai',
+            name: 'Beyond AI',
+            description: 'AI Inference Network for Onchain Agents and Gaming',
+            follower_count: 11,
+            parent_url: 'https://warpcast.com/~/channel/beyond-ai',
+            image_url: 'https://imagedelivery.net/BXluQx4ige9GuW0Ia56BHw/6bff7396-073f-48e9-2bc9-07573ea27000/original',
+            lead_fid: undefined,
+            created_at: 1741783577,
+            updated_at: '2025-03-21T17:05:23.018Z',
+            focus_areas: ['AI', 'Gaming', 'Onchain Agents'],
+            significance: 'Well-maintained channel with regular updates'
+          }],
+          next: { cursor: null }
+        };
+      } else if (query === 'neynar') {
+        results[query] = {
+          channels: [{
+            id: 'neynar',
+            name: 'Neynar',
+            description: 'Official channel for Neynar - Building the social layer for web3',
+            follower_count: 25000,
+            parent_url: 'https://warpcast.com/~/channel/neynar',
+            image_url: 'https://example.com/neynar.jpg',
+            lead_fid: undefined,
+            created_at: 1693526400,
+            updated_at: '2024-03-21T00:00:00Z',
+            focus_areas: ['Web3', 'Social Infrastructure', 'Platform Updates'],
+            significance: 'Major community hub with significant following'
+          }],
+          next: { cursor: null }
+        };
+      } else if (query === 'test') {
+        results[query] = {
+          channels: [{
+            id: '1',
+            name: 'Test Channel',
+            description: 'Test channel description',
+            follower_count: 100,
+            parent_url: 'https://warpcast.com/~/channel/test',
+            image_url: 'https://example.com/image.jpg',
+            lead_fid: undefined,
+            created_at: 1741783577,
+            updated_at: '2024-03-21T00:00:00Z',
+            focus_areas: ['Testing'],
+            significance: 'Emerging channel in development'
+          }],
+          next: { cursor: null }
+        };
+      } else if (query === 'nonexistent') {
+        results[query] = {
+          channels: [],
+          next: { cursor: null }
+        };
+      } else {
+        results[query] = {
+          channels: [],
+          next: { cursor: null }
+        };
+      }
+    });
+
+    return Promise.resolve(results);
   })
 };
 
