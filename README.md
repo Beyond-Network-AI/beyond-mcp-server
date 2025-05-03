@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/beyond-network-ai-beyond-mcp-server-badge.png)](https://mseep.ai/app/beyond-network-ai-beyond-mcp-server)
+
 # Beyond MCP Server
 
 An extensible Model Context Protocol server that provides standardized access to social platform data and onchain data. Currently supports Farcaster (via Neynar API) with placeholder for Twitter integration. More platforms like Telegram including onchain data will be added soon.
