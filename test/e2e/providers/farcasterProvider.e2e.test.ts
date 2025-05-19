@@ -72,6 +72,15 @@ jest.setTimeout(60000);
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBe(0);
     });
+
+    it('should handle errors gracefully', async () => {
+      const results = await provider.searchContent('from:aswrer2434@$$#@@@!@');
+      
+      // Verify we got an empty array
+      expect(results).toBeDefined();
+      expect(Array.isArray(results)).toBe(true);
+      expect(results.length).toBe(0);
+    });
   });
 
   describe('User Profile Functionality', () => {
