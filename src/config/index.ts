@@ -68,11 +68,11 @@ const config: Config = {
     twitter: {
       apiKey: process.env.TWITTER_API_KEY || '',
       apiSecret: process.env.TWITTER_API_SECRET || '',
-      enabled: process.env.ENABLE_TWITTER === 'true'
+      enabled: process.env.ENABLE_TWITTER === 'false'
     },
     telegram: {
       botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-      enabled: process.env.ENABLE_TELEGRAM === 'true'
+      enabled: process.env.ENABLE_TELEGRAM === 'false'
     }
   },
   cache: {
